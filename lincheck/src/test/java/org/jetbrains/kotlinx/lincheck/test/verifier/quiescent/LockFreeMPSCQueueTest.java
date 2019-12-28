@@ -44,7 +44,7 @@ public class LockFreeMPSCQueueTest {
     }
 
     @Operation
-    public boolean addLast(@Param(gen = IntGen.class) Integer val) {
+    public boolean addLast(@Param(gen = IntGen.class, conf = "distinct") Integer val) {
         return q.addLast(val);
     }
 

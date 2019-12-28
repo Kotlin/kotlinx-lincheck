@@ -101,6 +101,9 @@ It is also possible to use once configured generators for several parameters. Th
 
 If the parameter generator is not specified **lincheck** tries to use the default one, binding supported primitive types with the existent generators and using the default configurations for them.
 
+All standard generators support `distinct` configuration. Use it when you want to generate different values that will be used only once.
+`@Param(name = ..., gen = ..., conf = "distinct")`.
+
 ### Binding parameter and generator names
 Java 8 came with the feature ([JEP 188](http://openjdk.java.net/jeps/118)) to store parameter names to class files. If test class is compiled this way then they are used as the name of the already specified parameter generators.
 

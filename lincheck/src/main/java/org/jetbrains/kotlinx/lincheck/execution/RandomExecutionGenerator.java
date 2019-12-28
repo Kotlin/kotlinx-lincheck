@@ -42,6 +42,8 @@ public class RandomExecutionGenerator extends ExecutionGenerator {
 
     @Override
     public ExecutionScenario nextExecution() {
+        // Reset generators
+        testStructure.actorGenerators.forEach(ActorGenerator::reset);
         // Create init execution part
         List<ActorGenerator> validActorGeneratorsForInit = testStructure.actorGenerators.stream()
             .filter(ag -> !ag.useOnce() && !ag.isSuspendable()).collect(Collectors.toList());

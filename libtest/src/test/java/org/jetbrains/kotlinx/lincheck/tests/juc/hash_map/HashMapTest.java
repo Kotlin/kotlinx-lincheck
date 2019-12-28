@@ -36,7 +36,7 @@ import java.util.Map;
 
 @StressCTest
 @Param(name = "key", gen = IntGen.class)
-@Param(name = "value", gen = IntGen.class)
+@Param(name = "value", gen = IntGen.class, conf = "distinct")
 public class HashMapTest extends VerifierState {
     private Map<Integer, Integer> m = new HashMap<>();
 

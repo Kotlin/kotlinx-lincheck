@@ -30,7 +30,7 @@ import org.jetbrains.kotlinx.lincheck.verifier.VerifierState
 import org.junit.Test
 import java.util.concurrent.ConcurrentSkipListMap
 
-@Param(name = "value", gen = IntGen::class, conf = "1:5")
+@Param(name = "value", gen = IntGen::class, conf = "distinct")
 @StressCTest(verifier = LinearizabilityVerifier::class, iterations = 10, invocationsPerIteration = 1000, actorsBefore = 10, actorsAfter = 10, actorsPerThread = 5, threads = 3)
 class ConcurrentSkipListMapStressTest : VerifierState() {
 

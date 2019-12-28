@@ -58,6 +58,10 @@ public class ActorGenerator {
         return new Actor(method, parameters, handledExceptions, cancellableOnSuspension & Random.Default.nextBoolean());
     }
 
+    public void reset() {
+        parameterGenerators.forEach(ParameterGenerator::reset);
+    }
+
     public boolean useOnce() {
         return useOnce;
     }

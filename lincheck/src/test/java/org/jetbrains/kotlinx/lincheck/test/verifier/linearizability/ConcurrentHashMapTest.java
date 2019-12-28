@@ -33,12 +33,13 @@ import org.junit.Test;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Param(name = "key", gen = IntGen.class, conf = "1:5")
+@Param(name = "value", gen = IntGen.class, conf = "distinct")
 @StressCTest(actorsPerThread = 10, threads = 2, invocationsPerIteration = 1000, iterations = 100, actorsBefore = 10, actorsAfter = 10)
 public class ConcurrentHashMapTest extends VerifierState {
     private ConcurrentHashMap<Integer, Integer> map = new ConcurrentHashMap<>();
 
     @Operation
-    public Integer put(@Param(name = "key") Integer key, Integer value) {
+    public Integer put(@Param(name = "key") Integer key, @Param(name = "value") Integer value) {
         return map.put(key, value);
     }
 
