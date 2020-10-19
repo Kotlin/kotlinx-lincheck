@@ -46,7 +46,7 @@ public class IntGen implements ParameterGenerator<Integer> {
             break;
         default:
             throw new IllegalArgumentException("Configuration should have " +
-                "two arguments (begin and end) separated by comma");
+                "two arguments (begin and end) separated by colon");
         }
     }
 

@@ -38,13 +38,13 @@ public class StringGen implements ParameterGenerator<String> {
             alphabet = DEFAULT_ALPHABET;
             return;
         }
-        int firstCommaIndex = configuration.indexOf(':');
-        if (firstCommaIndex < 0) { // maxWordLength only
+        int firstColonIndex = configuration.indexOf(':');
+        if (firstColonIndex < 0) { // maxWordLength only
             maxWordLength = Integer.parseInt(configuration);
             alphabet = DEFAULT_ALPHABET;
         } else { // maxWordLength:alphabet
-            maxWordLength = Integer.parseInt(configuration.substring(0, firstCommaIndex));
-            alphabet = configuration.substring(firstCommaIndex + 1);
+            maxWordLength = Integer.parseInt(configuration.substring(0, firstColonIndex));
+            alphabet = configuration.substring(firstColonIndex + 1);
         }
     }
 

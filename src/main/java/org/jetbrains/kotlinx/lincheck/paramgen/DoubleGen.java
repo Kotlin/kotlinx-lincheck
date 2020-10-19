@@ -55,7 +55,7 @@ public class DoubleGen implements ParameterGenerator<Double> {
             break;
         default:
             throw new IllegalArgumentException("Configuration should have two (begin and end) " +
-                "or three (begin, step and end) arguments  separated by comma");
+                "or three (begin, step and end) arguments  separated by colon");
         }
         if ((end - begin) / step >= Integer.MAX_VALUE)
             throw new IllegalArgumentException("step is too small for specified range");
