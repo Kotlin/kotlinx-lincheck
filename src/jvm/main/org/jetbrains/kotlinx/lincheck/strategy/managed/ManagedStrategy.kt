@@ -200,7 +200,6 @@ abstract class ManagedStrategy(
         callStackTrace.forEach { it.clear() }
         suspendedFunctionsStack.forEach { it.clear() }
         ManagedStrategyStateHolder.resetState(runner.classLoader, testClass)
-        Probability.resetRandom()
         Crash.barrierCallback = { forceSwitchToAwaitSystemCrash() }
         systemCrashInitiator = NO_CRASH_INITIATOR
     }

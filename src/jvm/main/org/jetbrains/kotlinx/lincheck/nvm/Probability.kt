@@ -177,7 +177,7 @@ object Probability {
 
     @Volatile
     private lateinit var randomGetter: () -> Random
-    private var seed = 0L
+    private val iterationRandom = Random(0)
     private val mcRandom = Random(42)
     private var minimizeCrashes = false
 
@@ -231,14 +231,16 @@ object Probability {
 
     private fun bernoulli(probability: Double) = random.nextDouble() < probability
 
-    internal fun setSeed(seed: Int) {
-        this.seed = seed.toLong()
+    internal fun setIterationSeed(seed: Int) {
+        iterationRandom.setSeed(seed.toLong())
     }
 
-    internal fun resetRandom() {
-        mcRandom.setSeed(seed)
+    internal fun resetRandom(seed: Int) {
+        mcRandom.setSeed(seed.toLong())
         randomGetter = { mcRandom }
     }
+
+    internal fun generateSeed(): Int = iterationRandom.nextInt()
 }
 
 internal fun interface BinarySearchSolver {

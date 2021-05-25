@@ -22,6 +22,7 @@
 package org.jetbrains.kotlinx.lincheck.strategy.managed.modelchecking
 
 import org.jetbrains.kotlinx.lincheck.execution.*
+import org.jetbrains.kotlinx.lincheck.nvm.Probability
 import org.jetbrains.kotlinx.lincheck.nvm.RecoverabilityModel
 import org.jetbrains.kotlinx.lincheck.strategy.*
 import org.jetbrains.kotlinx.lincheck.strategy.managed.*
@@ -67,6 +68,8 @@ internal class ModelCheckingStrategy(
     private val generationRandom = Random(0)
     // The interleaving that will be studied on the next invocation.
     private lateinit var currentInterleaving: Interleaving
+    // Seed for probability of variables crash/flush
+    private var seed = 0
 
     override fun runImpl(): LincheckFailure? {
         while (usedInvocations < maxInvocations) {
@@ -116,6 +119,7 @@ internal class ModelCheckingStrategy(
 
     override fun initializeInvocation() {
         currentInterleaving.initialize()
+        Probability.resetRandom(seed)
         super.initializeInvocation()
     }
 
@@ -265,6 +269,20 @@ internal class ModelCheckingStrategy(
         }
     }
 
+    private inner class AfterCrashRandomChoosingNode(createChild: () -> InterleavingTreeNode) : InterleavingTreeNode() {
+        init {
+            choices = List(4) { Choice(createChild(), Probability.generateSeed()) }
+        }
+
+        override fun nextInterleaving(interleavingBuilder: InterleavingBuilder): Interleaving {
+            val child = chooseUnexploredNode()
+            seed = child.value
+            val interleaving = child.node.nextInterleaving(interleavingBuilder)
+            updateExplorationStatistics()
+            return interleaving
+        }
+    }
+
     private inner class Choice(val node: InterleavingTreeNode, val value: Int)
 
     /**
@@ -341,7 +359,9 @@ internal class ModelCheckingStrategy(
             val moreCrashesPermitted = crashPositions.size < recoverModel.defaultExpectedCrashes()
             return when (explorationType) {
                 ExplorationNodeType.SWITCH -> ThreadChoosingNode(switchableThreads(iThread), moreCrashesPermitted)
-                ExplorationNodeType.CRASH -> if (moreCrashesPermitted) SwitchOrCrashChoosingNode() else SwitchChoosingNode()
+                ExplorationNodeType.CRASH -> AfterCrashRandomChoosingNode {
+                    if (moreCrashesPermitted) SwitchOrCrashChoosingNode() else SwitchChoosingNode()
+                }
                 ExplorationNodeType.NONE -> error("Cannot create child for no exploration node")
             }
         }
