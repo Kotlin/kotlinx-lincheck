@@ -68,8 +68,6 @@ internal class ModelCheckingStrategy(
     private val generationRandom = Random(0)
     // The interleaving that will be studied on the next invocation.
     private lateinit var currentInterleaving: Interleaving
-    // Seed for probability of variables crash/flush
-    private var seed = 0
 
     override fun runImpl(): LincheckFailure? {
         while (usedInvocations < maxInvocations) {
@@ -95,6 +93,8 @@ internal class ModelCheckingStrategy(
     override fun onNewCrash(iThread: Int, mustCrash: Boolean) {
         if (mustCrash) {
             currentInterleaving.newExecutionCrashPosition(iThread)
+        } else {
+            Probability.resetRandom(currentInterleaving.chooseRandomSeed())
         }
     }
 
@@ -119,7 +119,7 @@ internal class ModelCheckingStrategy(
 
     override fun initializeInvocation() {
         currentInterleaving.initialize()
-        Probability.resetRandom(seed)
+        Probability.resetRandom(currentInterleaving.chooseRandomSeed())
         super.initializeInvocation()
     }
 
@@ -276,7 +276,7 @@ internal class ModelCheckingStrategy(
 
         override fun nextInterleaving(interleavingBuilder: InterleavingBuilder): Interleaving {
             val child = chooseUnexploredNode()
-            seed = child.value
+            interleavingBuilder.addRandomSeed(child.value)
             val interleaving = child.node.nextInterleaving(interleavingBuilder)
             updateExplorationStatistics()
             return interleaving
@@ -293,10 +293,12 @@ internal class ModelCheckingStrategy(
         private val crashPositions: List<Int>,
         private val threadSwitchChoices: List<Int>,
         private val nonSystemCrashes: List<Int>,
+        private val randomSeeds: List<Int>,
         private var lastNotInitializedNode: InterleavingTreeNode?
     ) {
         private lateinit var interleavingFinishingRandom: Random
         private lateinit var nextThreadToSwitch: Iterator<Int>
+        private lateinit var nextRandomSeed: Iterator<Int>
         private var lastNotInitializedNodeChoices: MutableList<Choice>? = null
         private var executionPosition: Int = 0
         private lateinit var explorationType: ExplorationNodeType
@@ -306,6 +308,7 @@ internal class ModelCheckingStrategy(
             interleavingFinishingRandom = Random(2) // random with a constant seed
             nextThreadToSwitch = threadSwitchChoices.iterator()
             currentThread = nextThreadToSwitch.next() // choose initial executing thread
+            nextRandomSeed = randomSeeds.iterator()
             lastNotInitializedNodeChoices = null
             explorationType = ExplorationNodeType.fromNode(lastNotInitializedNode)
             lastNotInitializedNode?.let {
@@ -331,6 +334,8 @@ internal class ModelCheckingStrategy(
                 lastNotInitializedNodeChoices = null // end of execution position choosing initialization because of new switch
                 switchableThreads(iThread).random(interleavingFinishingRandom)
             }
+
+        fun chooseRandomSeed() = nextRandomSeed.next()
 
         fun isSwitchPosition() = executionPosition in switchPositions
         fun isCrashPosition() = executionPosition in crashPositions
@@ -375,6 +380,7 @@ internal class ModelCheckingStrategy(
         private val crashPositions = mutableListOf<Int>()
         private val threadSwitchChoices = mutableListOf<Int>()
         private val nonSystemCrashes = mutableListOf<Int>()
+        private val randomSeeds = mutableListOf(Probability.generateSeed())
         private var lastNoninitializedNode: InterleavingTreeNode? = null
 
         val numberOfEvents get() = switchPositions.size + crashPositions.size
@@ -392,11 +398,15 @@ internal class ModelCheckingStrategy(
             if (!isSystemCrash) nonSystemCrashes.add(crashPosition)
         }
 
+        fun addRandomSeed(seed: Int) {
+            randomSeeds.add(seed)
+        }
+
         fun addLastNoninitializedNode(lastNoninitializedNode: InterleavingTreeNode) {
             this.lastNoninitializedNode = lastNoninitializedNode
         }
 
-        fun build() = Interleaving(switchPositions, crashPositions, threadSwitchChoices, nonSystemCrashes, lastNoninitializedNode)
+        fun build() = Interleaving(switchPositions, crashPositions, threadSwitchChoices, nonSystemCrashes, randomSeeds, lastNoninitializedNode)
     }
 
     private enum class ExplorationNodeType {
