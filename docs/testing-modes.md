@@ -2,6 +2,9 @@
 
 In this section we will take a closer look at the testing modes provided by Lincheck.
 
+TODO: why do you need stack as an example here? Why counter from the previous example is worse?
+TODO: It seems that you focus on the test structure, not on the testing modes. Let's re-think the guide structure.
+
 For an example we will test the lock-free Treiber stack algorithm. 
 In addition to the standard `push(value)` and `pop()` operations, we have also implemented a non-linearizable (thus, incorrect) `size()`, 
 which increases and decreases the corresponding `size` field following successful push and pop invocations.
@@ -143,6 +146,8 @@ Let's read the trace to figure out what interleaving lead to the negative `size`
 
 We can configure scenario generation and execution strategy via setting options in the `<TestingMode>Options` class.
 
+TODO: let's do not mention `LogLevel`, this parameter is not really important and is menttioned in the documentation
+
 For our `StackTest` we have set the parameters of the generated scenario and turned on the logging: 
 
 ```kotlin
@@ -164,6 +169,8 @@ class StackTest {
 ```
 
 If we run `stressTest()` again, this configured test the output will look like this (comments given in `<--!  -->`):
+
+TODO: can we shorten the output?
 
 ```text 
 ......
@@ -247,6 +254,8 @@ During stress testing, the state representation is printed after the init and po
 For model checking it is possible print the current state representation after each read or write event.
 
 Running the `stressTest()` now, you will see the following output:
+TODO: this feature is more important for model checking
+TODO: minimization will happen here
 
 ```text
 = Invalid execution results =

@@ -27,6 +27,10 @@ How to define a sequential specification:
 
 As an example, let's define the sequential specification for the Multi-Producer-Single-Consumer queue (see the [section about execution constraints](constraints.md) for the full code).
 Sequential specification for the concurrent `MpscLinkedAtomicQueue` will delegate it's operations to the `java.util.LinkedList<Int>`.
+
+TODO: is possible to replace 
+
+
 ```kotlin
 ...
 public class MpscQueueTest {
