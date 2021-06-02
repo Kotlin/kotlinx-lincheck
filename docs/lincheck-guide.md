@@ -4,7 +4,7 @@
 Writing concurrent algorithms is hard, however testing them is even more challenging.
 That's why we have `Lincheck`, a practical tool for testing concurrent algorithms on JVM.
 
-This framework’s main advantage is that it provides a simple and declarative way to write concurrent tests.
+The main advantage of `Lincheck`  is that it provides a simple and declarative way to write concurrent tests.
 Instead of describing how to perform the test, you specify what to test by declaring all the operations to examine along with the correctness property (linearizability is the default one).
 
 This is a hands-on guide that will help you to get in touch with the tool and try the most practically useful features with examples.
@@ -15,10 +15,10 @@ This is a hands-on guide that will help you to get in touch with the tool and tr
 * [Stress mode and model checking mode](testing-modes.md)
 * [Execution constraints: single consumer/producer](constraints.md)
 * [Parameter generation](parameter-generation.md)
-* [Modular checking](modular-testing.md)
-* [Check for progress guarantees](progress-guarantees.md)
+* [Modular testing](modular-testing.md)
+* [Progress guarantees](progress-guarantees.md)
 * [Verification](verification.md)
-* [Testing blocking data structures](blocking-data-structures.md)
+* [Testing blocking data structures for Kotlin Coroutines](blocking-data-structures.md)
 
 ## Given talks
 

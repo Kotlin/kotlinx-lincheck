@@ -6,6 +6,8 @@ Consider a simple example: you have some data, with non-atomic reads and writes.
 One thread is updating the current data calling `data.write(newData)` and several threads are calling `data.read()`.
 To make reads and writes atomic without using locks, we use versions of the data and get the following algorithm:
 
+TODO: String is just a reference, there is no need to use such a synchronization here. Let's store two separate fields.
+
 ```kotlin
 class DataHolder {
     var data: String = "aaa"
@@ -59,10 +61,13 @@ class DataHolderTest {
 }
 ```
 
+TODO: I would suggest adding a "To sum up" subsection to each part, and adding some words on what we have learned along with the full code. A link to the next chapter can also be put there.
+
 > Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/DataHolderTest.kt).
 
 The test will fail with the following output:
 
+TODO: but an active lock has been DETECTED, let's make a PR
 ```text
 = Obstruction-freedom is required but an active lock has been found =
 Execution scenario (parallel part):
@@ -70,16 +75,16 @@ Execution scenario (parallel part):
 
 = The following interleaving leads to the error =
 Parallel part trace:
-| write(K0a1)                                                    |                                                                 |
-|   write(K0a1) at DataHolderTest.write(DataHolderTest.kt:66)    |                                                                 |
-|     version.READ: 0 at DataHolder.write(DataHolderTest.kt:35)  |                                                                 |
-|     version.WRITE(1) at DataHolder.write(DataHolderTest.kt:35) |                                                                 |
-|     switch                                                     |                                                                 |
-|                                                                | read()                                                          |
-|                                                                |   read() at DataHolderTest.read(DataHolderTest.kt:69)           |
-|                                                                |     version.READ: 1 at DataHolder.read(DataHolderTest.kt:42)    |
-|                                                                |     version.READ: 1 at DataHolder.read(DataHolderTest.kt:42)    |
-|                                                                |                  <!--- active infinite loop --->
+| write(K0a1)                                                    |                                                              |
+|   write(K0a1) at DataHolderTest.write(DataHolderTest.kt:66)    |                                                              |
+|     version.READ: 0 at DataHolder.write(DataHolderTest.kt:35)  |                                                              |
+|     version.WRITE(1) at DataHolder.write(DataHolderTest.kt:35) |                                                              |
+|     switch                                                     |                                                              |
+|                                                                | read()                                                       |
+|                                                                |   read() at DataHolderTest.read(DataHolderTest.kt:69)        |
+|                                                                |     version.READ: 1 at DataHolder.read(DataHolderTest.kt:42) |
+|                                                                |     version.READ: 1 at DataHolder.read(DataHolderTest.kt:42) |
+|                                                                |                  <!--- active infinite loop --->             |
 ```
 
 What has happened:
