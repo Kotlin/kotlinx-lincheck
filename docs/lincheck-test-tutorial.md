@@ -24,8 +24,6 @@ This introductory section will help you with the set-up necessary to follow the 
 First, we need to add `Lincheck` as a dependency to your project. 
 Open the `build.gradle(.kts)` file, make sure that you have `mavenCentral()` in the list of repositories, and add the following dependencies to the Gradle configuration.
 
-TODO: testImplementation for Lincheck?
-
 ```groovy
 repositories {
     mavenCentral()
@@ -33,10 +31,10 @@ repositories {
 
 dependencies {
    // Lincheck dependency
-   implementation "org.jetbrains.kotlinx:lincheck:2.13"
+   testImplementation "org.jetbrains.kotlinx:lincheck:2.13"
    
    // This dependency will allow you to work with kotlin.test and JUnit:
-   testImplementation "org.jetbrains.kotlin:kotlin-test"
+   testImplementation "junit:junit:4.12"
 }
 ```
 
@@ -44,10 +42,13 @@ dependencies {
  
 Create `CounterTest.kt` file in the directory `src/test/kotlin` and put the following code there:
 
-TODO: should we include imports in the code blocks? 
-TODO: AFAIR, you can write `options.check(this::class)`
-
 ```kotlin
+import org.jetbrains.kotlinx.lincheck.annotations.Operation
+import org.jetbrains.kotlinx.lincheck.check
+import org.jetbrains.kotlinx.lincheck.strategy.stress.StressOptions
+import org.jetbrains.kotlinx.lincheck.verifier.VerifierState
+import org.junit.Test
+
 class CounterTest {
    private val c = Counter() // initial state
 
@@ -86,11 +87,26 @@ Besides the invalid execution results, it is also possible to find the exact int
 This feature is accessible with the *model checking* testing mode, which examines many different interleavings with a bounded number of context switches.
 
 To switch the testing mode, you need to replace the options type from `StressOptions()` 
-to `ModelCheckingOptions()`. The updated `CounterTest` class is presented below:
+to `ModelCheckingOptions()`.
 
-TODO: I am not sure that this code will work without `--add-opens` and `--add-exports`
- 
+> **Java 9+ support**
+>
+> Please note that to run the example below using Java 9 and later 
+> the following JVM property is required:
+> ```text
+> --add-opens java.base/jdk.internal.misc=ALL-UNNAMED
+> --add-exports java.base/jdk.internal.util=ALL-UNNAMED
+> ```
+
+The updated `CounterTest` class is presented below:
+
 ```kotlin
+import org.jetbrains.kotlinx.lincheck.annotations.Operation
+import org.jetbrains.kotlinx.lincheck.check
+import org.jetbrains.kotlinx.lincheck.strategy.managed.modelchecking.ModelCheckingOptions
+import org.jetbrains.kotlinx.lincheck.verifier.VerifierState
+import org.junit.Test
+
 class CounterTest {
    private val c = Counter()
    
@@ -126,18 +142,6 @@ In this trace, the following list of events have occurred:
 **T2:** The 2nd thread reads the current value of the counter (`value.READ: 0`) and pauses.    
 **T1:** The 1st thread executes `inc()`, which returns `1`, and finishes.  
 **T2:** The 2nd thread increments the previously read value of the counter and incorrectly updates it to `1`, returning `1` as a result.
-
-## Test structure
-TODO: I am not sure that we should discuss the test structure in the "Lincheck Hello World" section.
-
-Here are the steps to write the test:
-
-1. Create an instance of the `Counter` as an initial state.
-2. List operations defined on the `Counter` and mark them with `@Operation` annotation.
-3. Specify the execution strategy: 
-   - for _stress testing mode_ use stress testing options: `StressOptions()`
-   - for _model checking mode_ use model checking options: `ModelCheckingOptions()`
-4. Run the analysis by invoking the `StressOptions().check(..)` on the testing class.
 
 > Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/CounterTest.kt).
 

@@ -45,9 +45,9 @@ class CounterTest : VerifierState() {
     override fun extractState(): Any = c.get()
 
     @Test
-    fun runStressTest() = StressOptions().check(this::class.java)
+    fun runStressTest() = StressOptions().check(this::class)
 
     @Test
-    fun runModelCheckingTest() = ModelCheckingOptions().check(this::class.java)
+    fun runModelCheckingTest() = ModelCheckingOptions().check(this::class)
 }
 
