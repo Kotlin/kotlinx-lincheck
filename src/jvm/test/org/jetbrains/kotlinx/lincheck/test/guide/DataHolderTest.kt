@@ -20,8 +20,7 @@
 
 package org.jetbrains.kotlinx.lincheck.test.guide
 
-import org.jetbrains.kotlinx.lincheck.annotations.OpGroupConfig
-import org.jetbrains.kotlinx.lincheck.annotations.Operation
+import org.jetbrains.kotlinx.lincheck.annotations.*
 import org.jetbrains.kotlinx.lincheck.check
 import org.jetbrains.kotlinx.lincheck.strategy.managed.modelchecking.ModelCheckingOptions
 import org.jetbrains.kotlinx.lincheck.strategy.stress.StressOptions

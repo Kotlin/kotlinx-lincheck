@@ -20,6 +20,9 @@ fun runModelCheckingTest() = ModelCheckingOptions()
         .check(this::class.java)
 ```
 
+## To sum up 
+
+In this section you have learnt how to optimize testing of data structures that use other correct data structures in their implementation.
 > Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/MultiMapTest.kt).
 
 In [the next section](progress-guarantees.md) you will learn how `Lincheck` may be applied to test the algorithm 

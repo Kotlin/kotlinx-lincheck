@@ -102,6 +102,9 @@ Let's define the external state of some data structures from the previous sectio
         override fun extractState(): Any = s.toString()
     }
     ```
-  > Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/StackTest.kt).
+  
+## To sum up
+
+>Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/StackTest.kt).
   
 [The next section](blocking-data-structures.md) covers a more advanced topic of testing blocking data structures.

@@ -45,6 +45,12 @@ Let's check if the algorithm is really non-blocking:
 Here is the resulting test:
 
 ```kotlin
+import org.jetbrains.kotlinx.lincheck.annotations.*
+import org.jetbrains.kotlinx.lincheck.check
+import org.jetbrains.kotlinx.lincheck.strategy.managed.modelchecking.ModelCheckingOptions
+import org.jetbrains.kotlinx.lincheck.strategy.stress.StressOptions
+import org.junit.Test
+
 @OpGroupConfig(name = "writer", nonParallel = true)
 class DataHolderTest {
     private val dataHolder = DataHolder()

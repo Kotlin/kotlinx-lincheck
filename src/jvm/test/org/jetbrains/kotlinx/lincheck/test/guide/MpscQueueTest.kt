@@ -21,13 +21,9 @@
 package org.jetbrains.kotlinx.lincheck.test.guide
 
 import org.jctools.queues.atomic.MpscLinkedAtomicQueue
-import org.jetbrains.annotations.NotNull
-import org.jetbrains.kotlinx.lincheck.LoggingLevel
-import org.jetbrains.kotlinx.lincheck.annotations.OpGroupConfig
-import org.jetbrains.kotlinx.lincheck.annotations.Operation
+import org.jetbrains.kotlinx.lincheck.annotations.*
 import org.jetbrains.kotlinx.lincheck.check
 import org.jetbrains.kotlinx.lincheck.strategy.stress.StressOptions
-import org.jetbrains.kotlinx.lincheck.verifier.VerifierState
 import org.junit.Test
 import java.util.*
 
@@ -47,7 +43,6 @@ public class MpscQueueTest {
     @Test
     fun stressTest() = StressOptions()
         .requireStateEquivalenceImplCheck(false)
-        .logLevel(LoggingLevel.INFO)
         .sequentialSpecification(SequentialQueue::class.java)
         .check(this::class)
 }

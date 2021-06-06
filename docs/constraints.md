@@ -16,6 +16,12 @@ name the group and set `nonParallel` parameter to true.
 annotation.
 
 ```kotlin
+import org.jctools.queues.atomic.MpscLinkedAtomicQueue
+import org.jetbrains.kotlinx.lincheck.annotations.*
+import org.jetbrains.kotlinx.lincheck.check
+import org.jetbrains.kotlinx.lincheck.strategy.stress.StressOptions
+import org.junit.Test
+
 // declare a group of operations that should not be executed in parallel
 @OpGroupConfig(name = "consumer", nonParallel = true)
 public class MpscQueueTest {
@@ -34,8 +40,6 @@ public class MpscQueueTest {
     fun stressTest() = StressOptions().check(this::class)
 }
 ```
-
-> Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/MpscQueueTest.kt).
 
 Here is an example of the scenario generated for this test:
 
@@ -56,6 +60,12 @@ Execution scenario (post part):
 
 Note that all consuming `poll()` and `peek()` invocations are performed from a single thread 
 satisfying the queue contract.
+
+## To sum up
+
+In this section you have learnt how to set the constraints of the algorithm in the Lincheck test.
+
+> Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/MpscQueueTest.kt).
 
 In [the next section](parameter-generation.md) you will learn how to configure arguments passed to the test operations
 and when it may be useful.

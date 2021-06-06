@@ -6,6 +6,8 @@ In this section you will learn how you may configure generation of arguments.
 Consider the implementation of the custom `MultiMap` (bugged, of course) backed with `ConcurrentHashMap`:
 
 ```kotlin
+import java.util.concurrent.ConcurrentHashMap
+
 class MultiMap {
     val map = ConcurrentHashMap<Int, List<Int>>()
 
@@ -36,6 +38,15 @@ For this we can configure the generator for a `key: Int` parameter:
 Below is the `MultiMap` stress test that will generate keys in the range of `[1..2]`: 
 
 ```kotlin
+import org.jetbrains.kotlinx.lincheck.annotations.*
+import org.jetbrains.kotlinx.lincheck.check
+import org.jetbrains.kotlinx.lincheck.paramgen.IntGen
+import org.jetbrains.kotlinx.lincheck.strategy.managed.forClasses
+import org.jetbrains.kotlinx.lincheck.strategy.managed.modelchecking.ModelCheckingOptions
+import org.jetbrains.kotlinx.lincheck.strategy.stress.StressOptions
+import org.jetbrains.kotlinx.lincheck.verifier.VerifierState
+import org.junit.Test
+
 @Param(name = "key", gen = IntGen::class, conf = "1:2")
 class MultiMapTest {
     private val map = MultiMap()
@@ -53,8 +64,6 @@ class MultiMapTest {
 }
 ```
 
-> Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/MultiMapTest.kt).
-
 Run the `stressTest()` and see the following output:
 
 ```text
@@ -67,6 +76,12 @@ Post part:
 
 Due to the small range of keys in the `MultiMap` (`[1..2]`), 
 `Lincheck` quickly revealed the race in the `add(key, value)` implementation: during 2 concurrent writes one value update was lost. 
+
+## To sum up
+
+In this section you have learnt how to configure arguments passed to the test operations.
+
+> Get the full code of the example [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/MultiMapTest.kt).
 
 `MultiMap` implementation uses `java.util.concurrent.ConcurrentHashMap` as a building block and testing in the model checking mode may take a while due to the significant number of interleavings to check. 
 Considering implementation of the `ConcurrentHashMap` to be correct we can optimize and increase coverage of model checking. 
