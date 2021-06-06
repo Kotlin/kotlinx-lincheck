@@ -143,7 +143,10 @@ In this trace, the following list of events have occurred:
 **T1:** The 1st thread executes `inc()`, which returns `1`, and finishes.  
 **T2:** The 2nd thread increments the previously read value of the counter and incorrectly updates it to `1`, returning `1` as a result.
 
-> Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/CounterTest.kt).
+## To sum up
 
 Now you got familiar with the basic Lincheck API and tried out different testing modes.
+
+> Get the full code of the example [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/CounterTest.kt).
+
 Follow [the next section](testing-modes.md) to know more about stress testing and model checking modes and configuration of the test execution.

@@ -28,33 +28,39 @@ import org.jetbrains.kotlinx.lincheck.strategy.stress.StressOptions
 import org.junit.Test
 
 class DataHolder {
-    var data: String = "aaa"
+    var first: Int = 42
+    var second: Int = 7
     @Volatile var version = 0
 
-    fun write(new: String) { // single thread updater
+    fun write(newFirst: Int, newSecond: Int) { // single thread updater
         version++ // lock the holder for reads
-        data = new
+        first = newFirst
+        second = newSecond
         version++ // release the holder for reads
     }
 
-    fun read(): String {
+    fun read(): Pair<Int, Int> {
         while(true) {
             val curVersion = version
             // Is there a concurrent update?
             if (curVersion % 2 == 1) continue
             // Read the data
-            val data = this.data
+            val first = this.first
+            val second = this.second
             // Return if version is the same
-            if (curVersion == version) return data
+            if (curVersion == version) return first to second
         }
     }
 
-    fun writeBlocking(new: String) = synchronized(this) {
-        data = new
+    fun writeBlocking(newFirst: Int, newSecond: Int) = synchronized(this) {
+        first = newFirst
+        second = newSecond
     }
 
-    fun readBlocking(): String = synchronized(this) {
-        return data
+    fun readBlocking(): Pair<Int, Int> = synchronized(this) {
+        val first = this.first
+        val second = this.second
+        return first to second
     }
 }
 
@@ -63,7 +69,7 @@ class DataHolderTest {
     private val dataHolder = DataHolder()
 
     @Operation(group = "writer")
-    fun write(s: String) = dataHolder.write(s)
+    fun write(first: Int, second: Int) = dataHolder.write(first, second)
 
     @Operation
     fun read() = dataHolder.read()
