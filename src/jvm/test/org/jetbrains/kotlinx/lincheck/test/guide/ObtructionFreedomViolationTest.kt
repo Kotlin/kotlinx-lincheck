@@ -77,7 +77,6 @@ class ObstructionFreedomViolationTest  {
 
     @Test
     fun runModelCheckingTest() = ModelCheckingOptions()
-        .requireStateEquivalenceImplCheck(false)
         .checkObstructionFreedom(true)
         .check(this::class.java)
 }

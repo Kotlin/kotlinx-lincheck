@@ -75,12 +75,10 @@ class DataHolderTest {
 
     @Test
     fun runStressTest() = StressOptions()
-        .requireStateEquivalenceImplCheck(false)
         .check(this::class.java)
 
     @Test
     fun runModelCheckingTest() = ModelCheckingOptions()
-        .requireStateEquivalenceImplCheck(false)
         .checkObstructionFreedom(true)
         .check(this::class.java)
 }

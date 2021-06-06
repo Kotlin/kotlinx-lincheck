@@ -46,13 +46,11 @@ class LongAdderTest : VerifierState() {
     fun runStressTest() = StressOptions()
         .threads(3)
         .iterations(100000)
-        .requireStateEquivalenceImplCheck(false)
         .check(this::class.java)
 
     @Test
     fun runModelCheckingTest() = ModelCheckingOptions()
         .threads(3)
-        .requireStateEquivalenceImplCheck(false)
         .check(this::class.java)
 
 //    = Invalid execution results =

@@ -95,7 +95,6 @@ class StackTest : VerifierState() {
 
     @Test
     fun runModelCheckingTest() = ModelCheckingOptions()
-        .minimizeFailedScenario(false)
         .actorsBefore(5)
         .actorsAfter(5)
         .threads(2).actorsPerThread(2)

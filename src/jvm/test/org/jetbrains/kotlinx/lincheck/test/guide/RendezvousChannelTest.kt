@@ -47,7 +47,6 @@ class RendezvousChannelTest {
 
     @Test
     fun stressTest() = StressOptions()
-        .requireStateEquivalenceImplCheck(false)
         .logLevel(LoggingLevel.INFO)
         .check(this::class)
 }

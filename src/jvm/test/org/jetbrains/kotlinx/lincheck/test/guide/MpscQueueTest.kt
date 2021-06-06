@@ -42,7 +42,6 @@ public class MpscQueueTest {
 
     @Test
     fun stressTest() = StressOptions()
-        .requireStateEquivalenceImplCheck(false)
         .sequentialSpecification(SequentialQueue::class.java)
         .check(this::class)
 }
