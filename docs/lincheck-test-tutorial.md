@@ -6,7 +6,7 @@ This introductory section will help you with the set-up necessary to follow the 
 
 2. Open the `main.kt` file in `src/main/kotlin`. The `main.kt` file contains a sample code that prints `Hello World!`.
 
-2. Replace the code in `main.kt` with the following counter implementation:
+3. Replace the code in `main.kt` with the following counter implementation:
 
     ```kotlin
     class Counter {

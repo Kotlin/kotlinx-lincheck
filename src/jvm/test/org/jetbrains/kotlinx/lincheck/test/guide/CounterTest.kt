@@ -21,6 +21,7 @@
 package org.jetbrains.kotlinx.lincheck.test.guide
 
 import org.jetbrains.kotlinx.lincheck.annotations.Operation
+import org.jetbrains.kotlinx.lincheck.annotations.StateRepresentation
 import org.jetbrains.kotlinx.lincheck.check
 import org.jetbrains.kotlinx.lincheck.strategy.managed.modelchecking.ModelCheckingOptions
 import org.jetbrains.kotlinx.lincheck.strategy.stress.StressOptions
@@ -44,8 +45,16 @@ class CounterTest : VerifierState() {
 
     override fun extractState(): Any = c.get()
 
+    @StateRepresentation
+    fun counterReperesentation() = c.get().toString()
+
     @Test
-    fun runStressTest() = StressOptions().check(this::class)
+    fun runStressTest() = StressOptions()
+        .actorsBefore(2) // Init part
+        .threads(2).actorsPerThread(2)
+        .actorsAfter(1) // Post part
+        .minimizeFailedScenario(true)
+        .check(this::class)
 
     @Test
     fun runModelCheckingTest() = ModelCheckingOptions().check(this::class)
