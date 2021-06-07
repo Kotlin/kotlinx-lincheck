@@ -1,4 +1,5 @@
 ## Parameter generation
+TODO: this part is more important than single producer/consumer
 
 Till this moment in the guide we took for granted that arguments for test operations are somehow generated under the hood by `Lincheck`.
 In this section you will learn how you may configure generation of arguments.
@@ -23,6 +24,10 @@ class MultiMap {
     }
 }
 ```
+
+TODO: how `get(key)` is orrganized? 
+
+TODO: it would probably be better to rename `addBroken` to simple `add` (I am not sure about this) 
 
 We are going to test concurrent execution of `add(key, value)` and `get(key)` operations. Incorrect interleaving is more 
 likely to be detected if we increase the contention to access the small range of keys.

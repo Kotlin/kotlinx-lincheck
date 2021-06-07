@@ -1,8 +1,11 @@
 ## Verification
 
-Once the generated scenario is executed using the specified strategy, it is needed to verify the operation results for correctness.
-By default `Lincheck` checks the results for _linearizability_, the standard correctness contract for thread-safe algorithms.
+TODO: `@Validate`
 
+Once the generated scenario is executed using the specified strategy, it is needed to verify the operation results for correctness.
+By default `Lincheck` checks the results for _linearizability_, the standard correctness property for thread-safity.
+
+TODO: please check this definition with the one in books/papers
 > Execution is **linearizable** if there exists an equivalent sequential execution which produces the same results 
 > and does not violate the happens-before ordering of the initial execution.
 
@@ -28,7 +31,7 @@ How to define a sequential specification:
 As an example, let's define the sequential specification for the Multi-Producer-Single-Consumer queue (see the [section about execution constraints](constraints.md) for the full code).
 Sequential specification for the concurrent `MpscLinkedAtomicQueue` will delegate it's operations to the `java.util.LinkedList<Int>`.
 
-TODO: is possible to replace 
+TODO: I am not sure that `MpscQueueTest` is the best example here. Moreover, later in this section you have stack and counter. Why not to put counter as an example here? After that, you can mention another test and reference it.
 
 
 ```kotlin
@@ -65,6 +68,8 @@ public class MpscQueueTest {
 To make verification faster you can decrease the number of states in the transition graph. For that, define 
 the equivalency relation between test instance states via `equals()` and `hashCode()` implementations. 
 
+TODO: I would add a picture of state machine. How about a simplified version of the decription in the (still unpublished) paper?
+
 Lincheck provides the following way to do that:
 
 - extend `VerifierState` class 
@@ -91,6 +96,8 @@ Let's define the external state of some data structures from the previous sectio
 - The state of the stack, which implementation you can find in [this section](testing-modes.md) may be presented via 
   it's string representation:
   
+  TODO: `s.toList()`?
+  
     ```kotlin
     class StackTest : VerifierState() {
         private val s = Stack<Int>()
@@ -104,6 +111,8 @@ Let's define the external state of some data structures from the previous sectio
     ```
   
 ## To sum up
+
+TODO: Please sum up the section :)
 
 >Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/StackTest.kt).
   

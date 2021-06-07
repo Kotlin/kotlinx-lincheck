@@ -12,6 +12,10 @@ We can rely on the `ConcurrentHashMap` to be linearizable and guarantee all it's
 
 See the example of specifying this in the `ModelCheckingOptions`:
 
+TODO: write `forClasses(ConcurrentHashMap::class)` instead
+
+TODO: `.check(this::class.java)` -- you do not need `.java`
+
 ```kotlin
 @Test
 fun runModelCheckingTest() = ModelCheckingOptions()
@@ -19,6 +23,8 @@ fun runModelCheckingTest() = ModelCheckingOptions()
         .addGuarantee(forClasses("java.util.concurrent.ConcurrentHashMap").allMethods().treatAsAtomic())
         .check(this::class.java)
 ```
+
+TODO: with the modular testing you can examine _all_ possible interleaving in the MultiMap test from the previous chapter, with any number of context switches. This is my guess, check it :) (you can pass Int.MAX_VALUE as the number of invocations)
 
 ## To sum up 
 

@@ -1,3 +1,7 @@
+TODO: rename this file to "testing-strategies"  
+
+TODO: in the previous chapter you missed the title, here you have one. Let's make this part consistent. 
+
 ## Lincheck testing modes
 
 In this section we will take a closer look at the testing modes provided by Lincheck. 
@@ -57,6 +61,7 @@ Then `Lincheck` starts real threads, synchronizes them in an active manner to gu
 and executes the operations, repeating the run many times in the hope to hit an interleaving that produces an incorrect result. 
 
 To increase the number of different interleavings, we also add random busy-wait cycles between the operations and inside them. 
+TODO: we do not do this anymore :)
 
 Below is the high-level picture of how one of the stress executions for the `Counter` may be performed.
 
@@ -64,6 +69,7 @@ Below is the high-level picture of how one of the stress executions for the `Cou
 
 However, the stress testing does not guarantee any coverage, we still find it very useful to check algorithms for 
 bugs introduced by low-level effects, such as a missed `volatile` modifier.
+TODO: you cannot say this BEFORE discussing the model checking mode
 
 ## Model checking
 
@@ -104,9 +110,12 @@ synchronization primitives like lock acquisition and release, `park` / `unpark` 
 
 Since Lincheck controls the execution in the model checking mode, it provides the trace that leads to the invalid execution 
 that is the main advantage of this mode.
+TODO: you forgot to complete the sentence
 
 Run the `runModelCheckingTest()` again. You will get the output like the one below, 
 note that the first context switch happened after the read of the `Counter` value (`value.READ: 0`) 
+
+TODO: this part is exactly the same as in the previous chapter
 
 ```text
 = Invalid execution results =
@@ -137,6 +146,8 @@ since it ensures better coverage and provides a failing execution trace if an er
 In practice, we use both of these modes to be sure that 
 the low-level effects are covered as well.
 
+TODO: another reason to use stress testing is that there are very rare bugs that require many context switches to reprodude, and the current bounds in the model checking will not allow to find such a bug. 
+
 ## Configurations
 
 We can configure the testing mode via setting options in the `<TestingMode>Options` class.
@@ -162,7 +173,7 @@ class CounterTest {
       .threads(2).actorsPerThread(2) // Parallel part
       .actorsAfter(1) // Post part
       .minimizeFailedScenario(false) // Turn off minimization of the invalid scenario
-      .invocationsPerIteration(1000) // Run every scenario 1000 times
+      .invocationsPerIteration(1000) // Run each scenario 1000 times
       .check(this::class)
 }
 ```
@@ -188,9 +199,10 @@ Note, that we turned off the `minimizeFailedScenario` option to see the test fai
 
 Most of the bugs can be reproduced with fewer operations than in the originally generated scenario and 
 it is obviously a great help for debug to get the minimal invalid scenario possible. 
-So, this option is on by default.
+So, this option is enabled by default.
 
 ## Scenario minimization
+TODO: you turn off this option in the example above, discuss it, and now you discuss it again. Let's make the structure more consistent.
 
 When the invalid scenario is hit, Lincheck starts to “minimize” this scenario by trying to greedily remove operations from it 
 and checking whether the test still fails, continues to remove operations until it is no longer possible to do so without also causing the test not to fail.

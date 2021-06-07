@@ -1,3 +1,5 @@
+TODO: rename the file 
+
 This introductory section will help you with the set-up necessary to follow the examples of the guide and introduce the basic Lincheck API.
 
 ## Create a project
@@ -89,6 +91,7 @@ This feature is accessible with the *model checking* testing mode, which examine
 To switch the testing mode, you need to replace the options type from `StressOptions()` 
 to `ModelCheckingOptions()`.
 
+TODO: do you need this for the counter?
 > **Java 9+ support**
 >
 > Please note that to run the example below using Java 9 and later 
@@ -120,6 +123,8 @@ class CounterTest {
 
 When you re-run the test with model checking instead of stress testing, you will get the execution trace leading to the incorrect results:
     
+TODO: strange line numbers in the trace below
+
 ```text
 = Invalid execution results =
 Parallel part:

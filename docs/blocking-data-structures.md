@@ -3,7 +3,9 @@
 `Lincheck` supports testing blocking data structures implemented via [suspending functions](https://github.com/Kotlin/KEEP/blob/master/proposals/coroutines.md#coroutines-overview)
 from Kotlin language. The examples of such data structures from the Kotlin Coroutines library 
 are mutexes, semaphores, and channels (see the [corresponding guide](https://kotlinlang.org/docs/reference/coroutines/coroutines-guide.html)
-to understand what these data structures are).
+to understand what these data structures 
+
+TODO: let's say that we use the dual data structure formalism (links to paper and hydra talk) and describe the formalism in a couple of sentences with an example (we have a really nice description in the paper). Then we can say, that you should not do anything special to start testing blocking algorithms with Lincheck -- it will handle suspensions automatically. Then you have to provide an example of how sequential specification can be implements (just to show that everything is the same and that even _blocking_ algos can have sequential specification, and that this is toatally fine). At the end, there should be a non-trivial part on state equivalence. That's how I see this, not how it should be done. 
 
 To write a Lincheck test for a blocking data structure, you just need to mark 
 the corresponding operations delegated to the suspending functions with a `suspend` modifier.
@@ -32,6 +34,8 @@ class RendezvousChannelTest {
 ```
 
 ### Handle exception as a result
+
+TODO: I think that this feature does not relate to the coroutines support, and is quite important to test practical API. Let's discuss it somewhere above. 
 
 A channel can be closed. According to the `close` documentation:
 
