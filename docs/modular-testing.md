@@ -12,24 +12,21 @@ We can rely on the `ConcurrentHashMap` to be linearizable and guarantee all it's
 
 See the example of specifying this in the `ModelCheckingOptions`:
 
-TODO: write `forClasses(ConcurrentHashMap::class)` instead
-
-TODO: `.check(this::class.java)` -- you do not need `.java`
-
 ```kotlin
 @Test
 fun runModelCheckingTest() = ModelCheckingOptions()
         .requireStateEquivalenceImplCheck(false)
-        .addGuarantee(forClasses("java.util.concurrent.ConcurrentHashMap").allMethods().treatAsAtomic())
-        .check(this::class.java)
+        .addGuarantee(forClasses(ConcurrentHashMap::class).allMethods().treatAsAtomic())
+        .check(this::class)
 ```
 
 TODO: with the modular testing you can examine _all_ possible interleaving in the MultiMap test from the previous chapter, with any number of context switches. This is my guess, check it :) (you can pass Int.MAX_VALUE as the number of invocations)
+Not sure that we should put this example (of analysing all interleavings) here, we may just refer to the full code.
 
 ## To sum up 
 
 In this section you have learnt how to optimize testing of data structures that use other correct data structures in their implementation.
 > Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/MultiMapTest.kt).
 
-In [the next section](progress-guarantees.md) you will learn how `Lincheck` may be applied to test the algorithm 
-for progress guarantees.
+In [the next section](constraints.md) you will learn how to configure test execution if the contract of the data structure sets
+any constraints (for example single-consumer queues).

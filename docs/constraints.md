@@ -67,5 +67,5 @@ In this section you have learnt how to set the constraints of the algorithm in t
 
 > Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/MpscQueueTest.kt).
 
-In [the next section](parameter-generation.md) you will learn how to configure arguments passed to the test operations
-and when it may be useful.
+In [the next section](progress-guarantees.md) you will learn how `Lincheck` may be applied to test the algorithm
+for progress guarantees.

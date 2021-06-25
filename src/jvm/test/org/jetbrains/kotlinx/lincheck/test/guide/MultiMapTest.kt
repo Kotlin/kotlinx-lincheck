@@ -30,10 +30,12 @@ import org.jetbrains.kotlinx.lincheck.verifier.VerifierState
 import org.junit.Test
 import java.util.concurrent.ConcurrentHashMap
 
-class MultiMap {
-    val map = ConcurrentHashMap<Int, List<Int>>()
+import java.util.concurrent.*
 
-    fun addBroken(key: Int, value: Int) {
+class MultiMap<K, V> {
+    private val map = ConcurrentHashMap<K, List<V>>()
+
+    fun addBroken(key: K, value: V) {
         val list = map[key]
         if (list == null) {
             map[key] = listOf(value)
@@ -42,38 +44,28 @@ class MultiMap {
         }
     }
 
-    fun get(key: Int) = map.get(key)
+    fun add(key: K, value: V) {
+        map.compute(key) { _, list ->
+            if (list == null) listOf(value) else list + value
+        }
+    }
+
+    fun get(key: K): List<V> = map[key] ?: emptyList()
 }
 
-@Param(name = "key", gen = IntGen::class, conf = "1:1")
-class MultiMapFailingTest : VerifierState() {
-    private val map = MultiMap()
+@Param(name = "key", gen = IntGen::class, conf = "1:3")
+class MultiMapTest {
+    private val map = MultiMap<Int, Int>()
 
     @Operation
-    fun add(@Param(name = "key") key: Int, value: Int) = map.addBroken(key, value)
+    fun add(@Param(name = "key") key: Int, value: Int) = map.add(key, value)
 
     @Operation
     fun get(@Param(name = "key") key: Int) = map.get(key)
 
-    override fun extractState() = map.map
-
-    @Test
-    fun runStressTest() = StressOptions()
-        .requireStateEquivalenceImplCheck(false)
-        .check(this::class.java)
-
     @Test
     fun runModelCheckingTest() = ModelCheckingOptions()
-        //.requireStateEquivalenceImplCheck(false)
-        .minimizeFailedScenario(false)
-        .actorsBefore(0).actorsAfter(0)
-        .threads(2).actorsPerThread(2)
-        .check(this::class.java)
-
-    @Test
-    fun runModularTesting() = ModelCheckingOptions()
-        .requireStateEquivalenceImplCheck(false)
-        .minimizeFailedScenario(false)
-        .addGuarantee(forClasses("org.jetbrains.kotlinx.lincheck.tran\$f*rmed.java.util.concurrent.ConcurrentHashMap").allMethods().treatAsAtomic())
-        .check(this::class.java)
+        .invocationsPerIteration(Int.MAX_VALUE)
+        .addGuarantee(forClasses(ConcurrentHashMap::class.qualifiedName!!).allMethods().treatAsAtomic())
+        .check(this::class)
 }

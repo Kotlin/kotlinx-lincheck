@@ -11,8 +11,8 @@ This is a hands-on guide that will help you to get in touch with the tool and tr
 
 ## Table of contents
 
-* [Create your first test with Lincheck](lincheck-test-tutorial.md)
-* [Stress testing and model checking modes](testing-modes.md)
+* [Create your first test with Lincheck](introduction.md)
+* [Stress testing and model checking modes](testing-strategies.md)
 * [Execution constraints: single consumer/producer](constraints.md)
 * [Parameter generation](parameter-generation.md)
 * [Modular testing](modular-testing.md)

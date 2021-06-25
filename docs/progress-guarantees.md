@@ -39,7 +39,7 @@ Let's check if the algorithm is really non-blocking:
 
 1. According to the contract there is only one writer, so add `write(first, second)` operation to the non-parallel 
    operations group.
-2. Checking for progress guarantees is supported in the model checking mode, set the corresponding option:
+2. Checking for progress guarantees is supported in the model checking strategy, set the corresponding option:
    `ModelCheckingOptions().checkObstructionFreedom(true)`.
 
 Here is the resulting test:
@@ -105,9 +105,9 @@ For now, `Lincheck` may test the algorithm for obstruction-freedom violation. Ho
 
 ## To sum up
 
-In this section you have learnt how you can check your algorithm for liveness bugs using model checking testing mode.
+In this section you have learnt how you can check your algorithm for liveness bugs using model checking.
 
 > Get the full code of the example [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/DataHolderTest.kt).
 
-By this moment you have learnt about different testing modes, their applications and various ways to configure a test.
+By this moment you have learnt about different testing strategies, their applications and various ways to configure a test.
 In [the next section](verification.md) we will cover some tips on the `Lincheck` verification stage.

@@ -1,8 +1,6 @@
 ## Parameter generation
-TODO: this part is more important than single producer/consumer
 
-Till this moment in the guide we took for granted that arguments for test operations are somehow generated under the hood by `Lincheck`.
-In this section you will learn how you may configure generation of arguments.
+In this section you will learn how you may configure generation of arguments for test operations.
 
 Consider the implementation of the custom `MultiMap` (bugged, of course) backed with `ConcurrentHashMap`:
 
@@ -14,7 +12,7 @@ class MultiMap {
 
     // adds the value to the list by the given key
     // contains the race :(
-    fun addBroken(key: Int, value: Int) {
+    fun add(key: Int, value: Int) {
         val list = map[key]
         if (list == null) {
             map[key] = listOf(value)
@@ -22,12 +20,10 @@ class MultiMap {
             map[key] = list + value
         }
     }
+
+    fun get(key: Int) = map.get(key)
 }
 ```
-
-TODO: how `get(key)` is orrganized? 
-
-TODO: it would probably be better to rename `addBroken` to simple `add` (I am not sure about this) 
 
 We are going to test concurrent execution of `add(key, value)` and `get(key)` operations. Incorrect interleaving is more 
 likely to be detected if we increase the contention to access the small range of keys.
@@ -57,7 +53,7 @@ class MultiMapTest {
     private val map = MultiMap()
 
     @Operation
-    fun add(@Param(name = "key") key: Int, value: Int) = map.addBroken(key, value)
+    fun add(@Param(name = "key") key: Int, value: Int) = map.add(key, value)
 
     @Operation
     fun get(@Param(name = "key") key: Int) = map.get(key)
@@ -88,6 +84,6 @@ In this section you have learnt how to configure arguments passed to the test op
 
 > Get the full code of the example [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/MultiMapTest.kt).
 
-`MultiMap` implementation uses `java.util.concurrent.ConcurrentHashMap` as a building block and testing in the model checking mode may take a while due to the significant number of interleavings to check. 
+`MultiMap` implementation uses `java.util.concurrent.ConcurrentHashMap` as a building block and testing via the model checking strategy may take a while due to the significant number of interleavings to check. 
 Considering implementation of the `ConcurrentHashMap` to be correct we can optimize and increase coverage of model checking. 
 Go to [the next section](modular-testing.md) for details.

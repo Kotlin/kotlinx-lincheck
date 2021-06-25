@@ -26,7 +26,7 @@ How to define a sequential specification:
 
 - sequential implementation of the algorithm should have the same methods as the tested data structure 
 
-- sequential implementation class should be passed to the `sequentialSpecification` option of the testing mode.
+- sequential implementation class should be passed to the `sequentialSpecification` option of the testing strategy.
 
 As an example, let's define the sequential specification for the Multi-Producer-Single-Consumer queue (see the [section about execution constraints](constraints.md) for the full code).
 Sequential specification for the concurrent `MpscLinkedAtomicQueue` will delegate it's operations to the `java.util.LinkedList<Int>`.
@@ -79,7 +79,7 @@ Lincheck provides the following way to do that:
 
 Let's define the external state of some data structures from the previous sections:
 
-- The state of the counter from [the introduction section](lincheck-test-tutorial.md) is the value of the counter:
+- The state of the counter from [the introduction section](introduction.md) is the value of the counter:
 
     ```kotlin
     class CounterTest : VerifierState() {
@@ -93,7 +93,7 @@ Let's define the external state of some data structures from the previous sectio
     ```
   > Get the full code [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/CounterTest.kt).
   
-- The state of the stack, which implementation you can find in [this section](testing-modes.md) may be presented via 
+- The state of the stack, which implementation you can find in [this section](testing-strategies.md) may be presented via 
   it's string representation:
   
   TODO: `s.toList()`?

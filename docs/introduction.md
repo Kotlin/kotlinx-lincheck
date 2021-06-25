@@ -1,4 +1,4 @@
-TODO: rename the file 
+## Introduction to Lincheck
 
 This introductory section will help you with the set-up necessary to follow the examples of the guide and introduce the basic Lincheck API.
 
@@ -91,16 +91,6 @@ This feature is accessible with the *model checking* testing mode, which examine
 To switch the testing mode, you need to replace the options type from `StressOptions()` 
 to `ModelCheckingOptions()`.
 
-TODO: do you need this for the counter?
-> **Java 9+ support**
->
-> Please note that to run the example below using Java 9 and later 
-> the following JVM property is required:
-> ```text
-> --add-opens java.base/jdk.internal.misc=ALL-UNNAMED
-> --add-exports java.base/jdk.internal.util=ALL-UNNAMED
-> ```
-
 The updated `CounterTest` class is presented below:
 
 ```kotlin
@@ -122,8 +112,6 @@ class CounterTest {
 ```
 
 When you re-run the test with model checking instead of stress testing, you will get the execution trace leading to the incorrect results:
-    
-TODO: strange line numbers in the trace below
 
 ```text
 = Invalid execution results =
@@ -132,13 +120,13 @@ Parallel part:
 = The following interleaving leads to the error =
 Parallel part trace:
 |                      | inc()                                                 |
-|                      |   inc(): 1 at CounterTest.inc(CounterTest.kt:146)     |
-|                      |     value.READ: 0 at Counter.inc(CounterTest.kt:105)  |
+|                      |   inc(): 1 at CounterTest.inc(CounterTest.kt:11)     |
+|                      |     value.READ: 0 at Counter.inc(Counter.kt:5)  |
 |                      |     switch                                            |
 | inc(): 1             |                                                       |
 |   thread is finished |                                                       |
-|                      |     value.WRITE(1) at Counter.inc(CounterTest.kt:105) |
-|                      |     value.READ: 1 at Counter.inc(CounterTest.kt:105)  |
+|                      |     value.WRITE(1) at Counter.inc(Counter.kt:5) |
+|                      |     value.READ: 1 at Counter.inc(Counter.kt:5)  |
 |                      |   result: 1                                           |
 |                      |   thread is finished                                  |
 ```
@@ -154,4 +142,4 @@ Now you got familiar with the basic Lincheck API and tried out different testing
 
 > Get the full code of the example [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/CounterTest.kt).
 
-Follow [the next section](testing-modes.md) to know more about stress testing and model checking modes and configuration of the test execution.
+Follow [the next section](testing-strategies.md) to know more about stress testing and model checking modes and configuration of the test execution.
