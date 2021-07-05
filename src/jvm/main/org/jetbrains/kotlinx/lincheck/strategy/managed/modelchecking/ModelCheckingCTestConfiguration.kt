@@ -41,6 +41,9 @@ class ModelCheckingCTestConfiguration(testClass: Class<*>, iterations: Int, thre
     checkObstructionFreedom, hangingDetectionThreshold, invocationsPerIteration, guarantees, requireStateEquivalenceCheck,
     minimizeFailedScenario, sequentialSpecification, timeoutMs, eliminateLocalObjects, verboseTrace, customScenarios, recoverabilityModel) {
     override fun createStrategy(testClass: Class<*>, scenario: ExecutionScenario, validationFunctions: List<Method>,
-                                stateRepresentationMethod: Method?, verifier: Verifier): Strategy
-        = ModelCheckingStrategy(this, testClass, scenario, validationFunctions, stateRepresentationMethod, verifier, recoverabilityModel)
+                                stateRepresentationMethod: Method?, verifier: Verifier): Strategy = if (recoverabilityModel.crashes) {
+        SwitchesAndCrashesModelCheckingStrategy(this, testClass, scenario, validationFunctions, stateRepresentationMethod, verifier, recoverabilityModel)
+    } else {
+        ModelCheckingStrategy(this, testClass, scenario, validationFunctions, stateRepresentationMethod, verifier, recoverabilityModel)
+    }
 }

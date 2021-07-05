@@ -25,9 +25,6 @@ import kotlinx.coroutines.*
 import org.jetbrains.kotlinx.lincheck.*
 import org.jetbrains.kotlinx.lincheck.CancellationResult.*
 import org.jetbrains.kotlinx.lincheck.execution.*
-import org.jetbrains.kotlinx.lincheck.nvm.Crash
-import org.jetbrains.kotlinx.lincheck.nvm.CrashEnabledVisitor
-import org.jetbrains.kotlinx.lincheck.nvm.Probability
 import org.jetbrains.kotlinx.lincheck.nvm.RecoverabilityModel
 import org.jetbrains.kotlinx.lincheck.runner.*
 import org.jetbrains.kotlinx.lincheck.strategy.*
@@ -47,12 +44,12 @@ import kotlin.collections.set
  * and class loading problems.
  */
 abstract class ManagedStrategy(
-    private val testClass: Class<*>,
+    protected val testClass: Class<*>,
     scenario: ExecutionScenario,
     private val verifier: Verifier,
-    private val validationFunctions: List<Method>,
+    protected val validationFunctions: List<Method>,
     private val stateRepresentationFunction: Method?,
-    private val testCfg: ManagedCTestConfiguration,
+    protected val testCfg: ManagedCTestConfiguration,
     protected val recoverModel: RecoverabilityModel
 ) : Strategy(scenario), Closeable {
     // The number of parallel threads.
@@ -62,15 +59,13 @@ abstract class ManagedStrategy(
     private var runner: Runner
     // Shares location ids between class transformers in order
     // to keep them different in different code locations.
-    private val codeLocationIdProvider = CodeLocationIdProvider()
+    internal val codeLocationIdProvider = CodeLocationIdProvider()
 
     // == EXECUTION CONTROL FIELDS ==
 
     // Which thread is allowed to perform operations?
     @Volatile
     protected var currentThread: Int = 0
-    @Volatile
-    private var systemCrashInitiator: Int = NO_CRASH_INITIATOR
     // Which threads finished all the operations?
     private val finished = BooleanArray(nThreads) { false }
     // Which threads are suspended?
@@ -91,14 +86,15 @@ abstract class ManagedStrategy(
     // == TRACE CONSTRUCTION FIELDS ==
 
     // Whether an additional information requires for the trace construction should be collected.
-    private var collectTrace = false
+    protected var collectTrace = false
     // Whether state representations (see `@StateRepresentation`) should be collected after interleaving events.
-    private val collectStateRepresentation get() = collectTrace && stateRepresentationFunction != null
+    protected val collectStateRepresentation get() = collectTrace && stateRepresentationFunction != null
     // Trace point constructors, where `tracePointConstructors[id]`
     // stores a constructor for the corresponding code location.
-    private val tracePointConstructors: MutableList<TracePointConstructor> = ArrayList()
+    internal val tracePointConstructors: MutableList<TracePointConstructor> = ArrayList()
     // Collector of all events in the execution such as thread switches.
-    private var traceCollector: TraceCollector? = null // null when `collectTrace` is false
+    internal var traceCollector: TraceCollector? = null // null when `collectTrace` is false
+        private set
     // Stores the currently execuring methods call stack for each thread.
     private val callStackTrace = Array(nThreads) { mutableListOf<CallStackTraceElement>() }
     // Stores the global number of method calls.
@@ -128,21 +124,15 @@ abstract class ManagedStrategy(
         ManagedStrategyStateHolder.setState(runner.classLoader, this, testClass)
     }
 
-    override fun createTransformer(cv: ClassVisitor): ClassVisitor {
-        val visitor = CrashEnabledVisitor(cv, testClass, recoverModel.crashes)
-        return recoverModel.createTransformerWrapper(
-            ManagedStrategyTransformer(
-                cv = recoverModel.createTransformer(visitor, testClass),
-                tracePointConstructors = tracePointConstructors,
-                guarantees = testCfg.guarantees,
-                eliminateLocalObjects = testCfg.eliminateLocalObjects,
-                collectStateRepresentation = collectStateRepresentation,
-                constructTraceRepresentation = collectTrace,
-                codeLocationIdProvider = codeLocationIdProvider,
-                crashEnabledVisitor = visitor
-            ), testClass
-        )
-    }
+    override fun createTransformer(cv: ClassVisitor): ClassVisitor = ManagedStrategyTransformer(
+        cv = cv,
+        tracePointConstructors = tracePointConstructors,
+        guarantees = testCfg.guarantees,
+        eliminateLocalObjects = testCfg.eliminateLocalObjects,
+        collectStateRepresentation = collectStateRepresentation,
+        constructTraceRepresentation = collectTrace,
+        codeLocationIdProvider = codeLocationIdProvider
+    )
 
     override fun needsTransformation(): Boolean = true
 
@@ -163,21 +153,10 @@ abstract class ManagedStrategy(
     protected open fun onNewSwitch(iThread: Int, mustSwitch: Boolean) {}
 
     /**
-     * This method is invoked before every crash.
-     * @param iThread current thread that is about to be crashed
-     * @param mustCrash whether the crash is must do (in case of system crash)
-     */
-    protected open fun onNewCrash(iThread: Int, mustCrash: Boolean) {}
-
-    /**
      * Returns whether thread should switch at the switch point.
      * @param iThread the current thread
      */
     protected abstract fun shouldSwitch(iThread: Int): Boolean
-
-    protected abstract fun shouldCrash(iThread: Int): Boolean
-
-    protected abstract fun isSystemCrash(iThread: Int): Boolean
 
     /**
      * Choose a thread to switch from thread [iThread].
@@ -200,9 +179,6 @@ abstract class ManagedStrategy(
         callStackTrace.forEach { it.clear() }
         suspendedFunctionsStack.forEach { it.clear() }
         ManagedStrategyStateHolder.resetState(runner.classLoader, testClass)
-        Probability.resetRandom()
-        Crash.barrierCallback = { forceSwitchToAwaitSystemCrash() }
-        systemCrashInitiator = NO_CRASH_INITIATOR
     }
 
     // == BASIC STRATEGY METHODS ==
@@ -309,10 +285,9 @@ abstract class ManagedStrategy(
      * @param iThread the number of the executed thread according to the [scenario][ExecutionScenario].
      * @param codeLocation the byte-code location identifier of the point in code.
      */
-    private fun newSwitchPoint(iThread: Int, codeLocation: Int, tracePoint: TracePoint?) {
+    protected open fun newSwitchPoint(iThread: Int, codeLocation: Int, tracePoint: TracePoint?) {
         if (!isTestThread(iThread)) return // can switch only test threads
         if (inIgnoredSection(iThread)) return // cannot suspend in ignored sections
-        if (waitingSystemCrash()) return
         check(iThread == currentThread)
         var isLoop = false
         if (loopDetector.visitCodeLocation(iThread, codeLocation)) {
@@ -332,40 +307,6 @@ abstract class ManagedStrategy(
         traceCollector?.passCodeLocation(tracePoint)
         // continue the operation
     }
-
-    private fun newCrashPoint(iThread: Int) {
-        if (!isTestThread(iThread)) return // can crash only test threads
-        if (inIgnoredSection(iThread)) return // cannot suspend in ignored sections
-        check(iThread == currentThread)
-        val isSystemCrash = waitingSystemCrash()
-        val shouldCrash = shouldCrash(iThread) || isSystemCrash
-        if (shouldCrash) {
-            val initializeSystemCrash = !isSystemCrash && isSystemCrash(iThread)
-            if (initializeSystemCrash) {
-                systemCrashInitiator = iThread
-            }
-            crashCurrentThread(iThread, isSystemCrash, initializeSystemCrash)
-        }
-        // continue the operation
-    }
-
-    private fun forceSwitchToAwaitSystemCrash() {
-        check(waitingSystemCrash())
-        val iThread = currentThread
-        if (iThread != systemCrashInitiator) {
-            currentThread = systemCrashInitiator
-            awaitTurn(iThread)
-        } else {
-            for (t in switchableThreads(iThread)) {
-                currentThread = t
-                awaitTurn(iThread)
-            }
-            Crash.onSystemCrash()
-            systemCrashInitiator = NO_CRASH_INITIATOR
-        }
-    }
-
-    private fun waitingSystemCrash() = systemCrashInitiator != NO_CRASH_INITIATOR
 
     /**
      * This method is executed as the first thread action.
@@ -419,7 +360,7 @@ abstract class ManagedStrategy(
      * Waits until the specified thread can continue
      * the execution according to the strategy decision.
      */
-    private fun awaitTurn(iThread: Int) {
+    protected fun awaitTurn(iThread: Int) {
         // Wait actively until the thread is allowed to continue
         while (currentThread != iThread) {
             // Finish forcibly if an error occurred and we already have an `InvocationResult`.
@@ -435,14 +376,6 @@ abstract class ManagedStrategy(
         traceCollector?.newSwitch(iThread, reason)
         doSwitchCurrentThread(iThread, mustSwitch)
         awaitTurn(iThread)
-    }
-
-    private fun crashCurrentThread(iThread: Int, mustCrash: Boolean, initializeSystemCrash: Boolean) {
-        val systemCrash = mustCrash || initializeSystemCrash
-        val reason = if (systemCrash) CrashReason.SYSTEM_CRASH else CrashReason.CRASH
-        traceCollector?.newCrash(iThread, reason)
-        onNewCrash(iThread, mustCrash)
-        Crash.crash(iThread + 1, null, systemCrash)
     }
 
     private fun doSwitchCurrentThread(iThread: Int, mustSwitch: Boolean = false) {
@@ -472,13 +405,13 @@ abstract class ManagedStrategy(
      */
     protected fun switchableThreads(iThread: Int) = (0 until nThreads).filter { it != iThread && isActive(it) }
 
-    private fun isTestThread(iThread: Int) = iThread < nThreads
+    protected fun isTestThread(iThread: Int) = iThread < nThreads
 
     /**
      * The execution in an ignored section (added by transformer) or not in a test thread must not add switch points.
      * Additionally, after [ForcibleExecutionFinishException] everything is ignored.
      */
-    private fun inIgnoredSection(iThread: Int): Boolean =
+    protected fun inIgnoredSection(iThread: Int): Boolean =
         !isTestThread(iThread) || ignoredSectionDepth[iThread] > 0 || suddenInvocationResult != null
 
     // == LISTENING METHODS ==
@@ -583,15 +516,6 @@ abstract class ManagedStrategy(
         switchCurrentThread(iThread, SwitchReason.MONITOR_WAIT, true)
         require(monitorTracker.acquireMonitor(iThread, monitor)) // acquire the lock again
         return false
-    }
-
-    internal fun beforeCrashPoint(iThread: Int) {
-        newCrashPoint(iThread)
-    }
-
-    internal fun beforeNVMOperation(iThread: Int, codeLocation: Int, tracePoint: MethodCallTracePoint?) {
-        if (!isTestThread(iThread)) return
-        newSwitchPoint(iThread, codeLocation, tracePoint)
     }
 
     /**
@@ -782,7 +706,7 @@ abstract class ManagedStrategy(
     /**
      * Logs thread events such as thread switches and passed code locations.
      */
-    private inner class TraceCollector {
+    internal inner class TraceCollector {
         private val _trace = mutableListOf<TracePoint>()
         val trace: List<TracePoint> = _trace
 
@@ -809,13 +733,24 @@ abstract class ManagedStrategy(
             _trace += StateRepresentationTracePoint(iThread, currentActorId[iThread], stateRepresentation, callStackTrace)
         }
     }
+
+
+    // == NVM related ==
+
+    internal fun beforeCrashPoint(iThread: Int) = newCrashPoint(iThread)
+    internal fun beforeNVMOperation(iThread: Int, codeLocation: Int, tracePoint: MethodCallTracePoint?) =
+        newSwitchPoint(iThread, codeLocation, tracePoint)
+
+    protected open fun newCrashPoint(iThread: Int) {}
+
+    // == NVM related ==
 }
 
 /**
  * This class is a [ParallelThreadsRunner] with some overrides that add callbacks
  * to the strategy so that it can known about some required events.
  */
-private class ManagedStrategyRunner(
+internal class ManagedStrategyRunner(
     private val managedStrategy: ManagedStrategy, testClass: Class<*>, validationFunctions: List<Method>,
     stateRepresentationMethod: Method?, timeoutMs: Long, useClocks: UseClocks, recoverModel: RecoverabilityModel
 ) : ParallelThreadsRunner(managedStrategy, testClass, validationFunctions, stateRepresentationMethod, timeoutMs, useClocks, recoverModel) {
@@ -1016,4 +951,3 @@ internal object ForcibleExecutionFinishException : RuntimeException() {
 }
 
 private const val COROUTINE_SUSPENSION_CODE_LOCATION = -1 // currently the exact place of coroutine suspension is not known
-private const val NO_CRASH_INITIATOR = -1

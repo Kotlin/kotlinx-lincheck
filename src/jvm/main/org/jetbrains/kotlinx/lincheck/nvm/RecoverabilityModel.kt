@@ -116,6 +116,10 @@ interface RecoverabilityModel {
     val awaitSystemCrashBeforeThrow: Boolean
 
     fun nonSystemCrashSupported() = systemCrashProbability() < 1.0
+
+    companion object {
+        val default = Recover.NO_RECOVER.createModel(StrategyRecoveryOptions.STRESS)
+    }
 }
 
 internal object NoRecoverModel : RecoverabilityModel {
