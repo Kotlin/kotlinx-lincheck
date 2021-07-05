@@ -76,7 +76,7 @@ class LinChecker (private val testClass: Class<*>, options: Options<*, *>?) {
             if (failure != null) return failure
         }
         repeat(iterations) { i ->
-            Probability.setSeed(i)
+            Probability.setIterationSeed(i)
             val scenario = exGen.nextExecution()
             scenario.validate()
             reporter.logIteration(i + 1 + customScenarios.size, iterations, scenario)
