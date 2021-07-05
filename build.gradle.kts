@@ -51,6 +51,8 @@ kotlin {
                 api("org.ow2.asm:asm-commons:$asmVersion")
                 api("org.ow2.asm:asm-util:$asmVersion")
                 api("org.reflections:reflections:$reflectionsVersion")
+
+                implementation("com.intel.pmem:llpl:1.1.0-release")
             }
         }
 

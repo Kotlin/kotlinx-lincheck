@@ -30,6 +30,7 @@ import org.jetbrains.kotlinx.lincheck.strategy.UnexpectedExceptionFailure
 import org.jetbrains.kotlinx.lincheck.strategy.managed.modelchecking.ModelCheckingOptions
 import org.jetbrains.kotlinx.lincheck.strategy.stress.StressOptions
 import org.jetbrains.kotlinx.lincheck.test.checkTraceHasNoLincheckEvents
+import org.junit.After
 import org.junit.Test
 import java.lang.IllegalStateException
 import java.lang.reflect.InvocationTargetException
@@ -91,6 +92,11 @@ abstract class AbstractNVMLincheckTest(
         customize()
         runInternalTest()
     }
+
+    @After
+    fun afterTest() = after()
+
+    open fun after() {}
 
     private fun <O : Options<O, *>> O.commonConfiguration(): Unit = run {
         threads(threads)
