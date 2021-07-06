@@ -1,0 +1,89 @@
+## Parameter generation
+
+In this section you will learn how you may configure generation of arguments for test operations.
+
+Consider the implementation of the custom `MultiMap` (bugged, of course) backed with `ConcurrentHashMap`:
+
+```kotlin
+import java.util.concurrent.ConcurrentHashMap
+
+class MultiMap {
+    val map = ConcurrentHashMap<Int, List<Int>>()
+
+    // adds the value to the list by the given key
+    // contains the race :(
+    fun add(key: Int, value: Int) {
+        val list = map[key]
+        if (list == null) {
+            map[key] = listOf(value)
+        } else {
+            map[key] = list + value
+        }
+    }
+
+    fun get(key: Int) = map.get(key)
+}
+```
+
+We are going to test concurrent execution of `add(key, value)` and `get(key)` operations. Incorrect interleaving is more 
+likely to be detected if we increase the contention to access the small range of keys.
+
+For this we can configure the generator for a `key: Int` parameter:
+1. Declare the `@Param` annotation.
+2. Specify the integer generator class: `@Param(gen = IntGen::class)`. 
+   
+   Out of the box `Lincheck` supports random parameter generators for almost all primitives and strings.
+3. Define the range of values to be generated via the string configuration: `@Param(conf = "1:2")`.
+4. Specify the parameter configuration name (`@Param(name = "key")`) to share it for several operations.
+
+Below is the `MultiMap` stress test that will generate keys in the range of `[1..2]`: 
+
+```kotlin
+import org.jetbrains.kotlinx.lincheck.annotations.*
+import org.jetbrains.kotlinx.lincheck.check
+import org.jetbrains.kotlinx.lincheck.paramgen.IntGen
+import org.jetbrains.kotlinx.lincheck.strategy.managed.forClasses
+import org.jetbrains.kotlinx.lincheck.strategy.managed.modelchecking.ModelCheckingOptions
+import org.jetbrains.kotlinx.lincheck.strategy.stress.StressOptions
+import org.jetbrains.kotlinx.lincheck.verifier.VerifierState
+import org.junit.Test
+
+@Param(name = "key", gen = IntGen::class, conf = "1:2")
+class MultiMapTest {
+    private val map = MultiMap()
+
+    @Operation
+    fun add(@Param(name = "key") key: Int, value: Int) = map.add(key, value)
+
+    @Operation
+    fun get(@Param(name = "key") key: Int) = map.get(key)
+
+    @Test
+    fun stressTest() = StressOptions()
+        .requireStateEquivalenceImplCheck(false)
+        .check(this::class.java)
+}
+```
+
+Run the `stressTest()` and see the following output:
+
+```text
+= Invalid execution results =
+Parallel part:
+| add(1, 1): void | add(1, 4): void |
+Post part:
+[get(1): [4]]
+```
+
+Due to the small range of keys in the `MultiMap` (`[1..2]`), 
+`Lincheck` quickly revealed the race in the `add(key, value)` implementation: during 2 concurrent writes one value update was lost. 
+
+## To sum up
+
+In this section you have learnt how to configure arguments passed to the test operations.
+
+> Get the full code of the example [here](../src/jvm/test/org/jetbrains/kotlinx/lincheck/test/guide/MultiMapTest.kt).
+
+`MultiMap` implementation uses `java.util.concurrent.ConcurrentHashMap` as a building block and testing via the model checking strategy may take a while due to the significant number of interleavings to check. 
+Considering implementation of the `ConcurrentHashMap` to be correct we can optimize and increase coverage of model checking. 
+Go to [the next section](modular-testing.md) for details.
