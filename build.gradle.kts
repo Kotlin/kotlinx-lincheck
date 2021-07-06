@@ -62,6 +62,7 @@ kotlin {
             dependencies {
                 implementation("junit:junit:$junitVersion")
                 implementation("org.jctools:jctools-core:$jctoolsVersion")
+                implementation("org.apache.commons:commons-math3:3.5")
             }
         }
     }
@@ -88,6 +89,7 @@ tasks {
 
     withType<Test> {
         maxParallelForks = 1
+        maxHeapSize = "4g"
         jvmArgs("--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED",
                 "--add-exports", "java.base/jdk.internal.util=ALL-UNNAMED")
     }

@@ -24,6 +24,7 @@ package org.jetbrains.kotlinx.lincheck.runner;
 
 import kotlin.coroutines.Continuation;
 import org.jetbrains.kotlinx.lincheck.*;
+import org.jetbrains.kotlinx.lincheck.nvm.ActorCrashHandlerGenerator;
 import org.jetbrains.kotlinx.lincheck.runner.ParallelThreadsRunner.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.GeneratorAdapter;
@@ -55,11 +56,14 @@ public class TestThreadExecutionGenerator {
     private static final Method RUNNER_ON_FINISH_METHOD = new Method("onFinish", VOID_TYPE, new Type[]{INT_TYPE});
     private static final Method RUNNER_ON_FAILURE_METHOD = new Method("onFailure", Type.VOID_TYPE, new Type[]{Type.INT_TYPE, THROWABLE_TYPE});
     private static final Method RUNNER_ON_ACTOR_START = new Method("onActorStart", Type.VOID_TYPE, new Type[]{ Type.INT_TYPE });
+    private static final Method RUNNER_ON_ENTER_ACTOR_BODY = new Method("onEnterActorBody", Type.VOID_TYPE, new Type[]{ Type.INT_TYPE, Type.INT_TYPE });
+    private static final Method RUNNER_ON_EXIT_ACTOR_BODY = new Method("onExitActorBody", Type.VOID_TYPE, new Type[]{Type.INT_TYPE, Type.INT_TYPE});
 
     private static final Type TEST_THREAD_EXECUTION_TYPE = getType(TestThreadExecution.class);
     private static final Method TEST_THREAD_EXECUTION_CONSTRUCTOR;
     private static final Method TEST_THREAD_EXECUTION_INC_CLOCK = new Method("incClock", VOID_TYPE, NO_ARGS);
     private static final Method TEST_THREAD_EXECUTION_READ_CLOCKS = new Method("readClocks", VOID_TYPE, new Type[]{INT_TYPE});
+    private static final Method TEST_THREAD_EXECUTION_RESET_USE_CLOCKS = new Method("resetUseClocksOnce", VOID_TYPE, NO_ARGS);
 
     private static final Type RESULT_TYPE = getType(Result.class);
 
@@ -106,11 +110,22 @@ public class TestThreadExecutionGenerator {
                                              List<ParallelThreadsRunner.Completion> completions,
                                              boolean scenarioContainsSuspendableActors
     ) {
+        return create(runner, iThread, actors, completions, scenarioContainsSuspendableActors, new ActorCrashHandlerGenerator());
+    }
+
+    /**
+     * Creates a {@link TestThreadExecution} instance with specified {@link TestThreadExecution#run()} implementation.
+     */
+    public static TestThreadExecution create(Runner runner, int iThread, List<Actor> actors,
+                                             List<ParallelThreadsRunner.Completion> completions,
+                                             boolean scenarioContainsSuspendableActors,
+                                             ActorCrashHandlerGenerator actorCrashHandlerGenerator
+    ) {
         String className = TestThreadExecution.class.getCanonicalName() + generatedClassNumber++;
         String internalClassName = className.replace('.', '/');
         List<Object> objArgs = new ArrayList<>();
         Class<? extends TestThreadExecution> clz = runner.getClassLoader().defineClass(className,
-                generateClass(internalClassName, getType(runner.getTestClass()), iThread, actors, objArgs, completions, scenarioContainsSuspendableActors));
+                generateClass(internalClassName, getType(runner.getTestClass()), iThread, actors, objArgs, completions, scenarioContainsSuspendableActors, actorCrashHandlerGenerator));
         try {
             TestThreadExecution execution = clz.newInstance();
             execution.runner = runner;
@@ -123,13 +138,14 @@ public class TestThreadExecutionGenerator {
 
     private static byte[] generateClass(String internalClassName, Type testClassType, int iThread, List<Actor> actors,
                                         List<Object> objArgs, List<ParallelThreadsRunner.Completion> completions,
-                                        boolean scenarioContainsSuspendableActors)
+                                        boolean scenarioContainsSuspendableActors,
+                                        ActorCrashHandlerGenerator actorCrashHandlerGenerator)
     {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         CheckClassAdapter cca = new CheckClassAdapter(cw, false);
         cca.visit(52, ACC_PUBLIC + ACC_SUPER, internalClassName, null, TEST_THREAD_EXECUTION_TYPE.getInternalName(), null);
         generateConstructor(cca);
-        generateRun(cca, testClassType, iThread, actors, objArgs, completions, scenarioContainsSuspendableActors);
+        generateRun(cca, testClassType, iThread, actors, objArgs, completions, scenarioContainsSuspendableActors, actorCrashHandlerGenerator);
         cca.visitEnd();
         return cw.toByteArray();
     }
@@ -146,7 +162,8 @@ public class TestThreadExecutionGenerator {
 
     private static void generateRun(ClassVisitor cv, Type testType, int iThread, List<Actor> actors,
                                     List<Object> objArgs, List<Completion> completions,
-                                    boolean scenarioContainsSuspendableActors)
+                                    boolean scenarioContainsSuspendableActors,
+                                    ActorCrashHandlerGenerator actorCrashHandlerGenerator)
     {
         int access = ACC_PUBLIC;
         Method m = new Method("run", VOID_TYPE, NO_ARGS);
@@ -193,6 +210,9 @@ public class TestThreadExecutionGenerator {
                 for (Class<? extends Throwable> ec : actor.getHandledExceptions())
                     mv.visitTryCatchBlock(actorCatchBlockStart, actorCatchBlockEnd, handledExceptionHandler, getType(ec).getInternalName());
             }
+            Label executionStart = mv.newLabel();
+            actorCrashHandlerGenerator.addCrashTryBlock(executionStart, actorCatchBlockEnd, mv);
+
             // Catch those exceptions that has not been caught yet
             Label unexpectedExceptionHandler = mv.newLabel();
             mv.visitTryCatchBlock(actorCatchBlockStart, actorCatchBlockEnd, unexpectedExceptionHandler, THROWABLE_TYPE.getInternalName());
@@ -202,6 +222,16 @@ public class TestThreadExecutionGenerator {
             mv.getField(TEST_THREAD_EXECUTION_TYPE, "runner", RUNNER_TYPE);
             mv.push(iThread);
             mv.invokeVirtual(RUNNER_TYPE, RUNNER_ON_ACTOR_START);
+
+            mv.mark(executionStart);
+
+            // onEnterActorBody call
+            mv.loadThis();
+            mv.getField(TEST_THREAD_EXECUTION_TYPE, "runner", RUNNER_TYPE);
+            mv.push(iThread);
+            mv.push(i);
+            mv.invokeVirtual(RUNNER_TYPE, RUNNER_ON_ENTER_ACTOR_BODY);
+
             // Load result array and index to store the current result
             mv.loadLocal(resLocal);
             mv.push(i);
@@ -246,6 +276,14 @@ public class TestThreadExecutionGenerator {
             }
             // Store result to array
             mv.arrayStore(RESULT_TYPE);
+
+            // onExitActorBody call
+            mv.loadThis();
+            mv.getField(TEST_THREAD_EXECUTION_TYPE, "runner", RUNNER_TYPE);
+            mv.push(iThread);
+            mv.push(i);
+            mv.invokeVirtual(RUNNER_TYPE, RUNNER_ON_EXIT_ACTOR_BODY);
+
             // End of try-catch block for handled exceptions
             mv.visitLabel(actorCatchBlockEnd);
             Label skipHandlers = mv.newLabel();
@@ -264,6 +302,9 @@ public class TestThreadExecutionGenerator {
             // End of try-catch block for all other exceptions
             mv.goTo(skipHandlers);
 
+            Label launchNextActor = mv.newLabel();
+            actorCrashHandlerGenerator.addCrashCatchBlock(mv, resLocal, iLocal, launchNextActor);
+
             // Unexpected exception handler
             mv.visitLabel(unexpectedExceptionHandler);
             // Call onFailure method
@@ -279,12 +320,7 @@ public class TestThreadExecutionGenerator {
             mv.throwException();
             mv.visitLabel(skipHandlers);
 
-            // Increment the clock
-            mv.loadThis();
-            mv.invokeVirtual(TEST_THREAD_EXECUTION_TYPE, TEST_THREAD_EXECUTION_INC_CLOCK);
-            // Increment number of current operation
-            mv.iinc(iLocal, 1);
-            Label launchNextActor = mv.newLabel();
+            incrementClock(mv, iLocal);
             mv.visitJumpInsn(GOTO, launchNextActor);
 
             // write NoResult if all threads were suspended or completed
@@ -308,16 +344,28 @@ public class TestThreadExecutionGenerator {
         mv.visitEnd();
     }
 
+    public static void incrementClock(GeneratorAdapter mv, int iLocal) {
+        mv.loadThis();
+        mv.invokeVirtual(TEST_THREAD_EXECUTION_TYPE, TEST_THREAD_EXECUTION_INC_CLOCK);
+        // Increment number of current operation
+        mv.iinc(iLocal, 1);
+    }
+
     // `actorNumber` starts with 0
     private static void readClocksIfNeeded(int actorNumber, GeneratorAdapter mv) {
         mv.loadThis();
+        mv.getField(TEST_THREAD_EXECUTION_TYPE, "useClocksOnce", BOOLEAN_TYPE);
+        mv.loadThis();
         mv.getField(TEST_THREAD_EXECUTION_TYPE, "useClocks", BOOLEAN_TYPE);
+        mv.visitInsn(IOR);
         Label l = new Label();
         mv.visitJumpInsn(IFEQ, l);
         mv.loadThis();
         mv.push(actorNumber);
         mv.invokeVirtual(TEST_THREAD_EXECUTION_TYPE, TEST_THREAD_EXECUTION_READ_CLOCKS);
         mv.visitLabel(l);
+        mv.loadThis();
+        mv.invokeVirtual(TEST_THREAD_EXECUTION_TYPE, TEST_THREAD_EXECUTION_RESET_USE_CLOCKS);
     }
 
     private static void createVoidResult(Actor actor, GeneratorAdapter mv) {

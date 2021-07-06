@@ -24,6 +24,7 @@ package org.jetbrains.kotlinx.lincheck
 
 import org.jetbrains.kotlinx.lincheck.LoggingLevel.*
 import org.jetbrains.kotlinx.lincheck.execution.*
+import org.jetbrains.kotlinx.lincheck.nvm.CrashError
 import org.jetbrains.kotlinx.lincheck.runner.*
 import org.jetbrains.kotlinx.lincheck.strategy.*
 import org.jetbrains.kotlinx.lincheck.strategy.managed.*
@@ -186,15 +187,19 @@ private fun StringBuilder.appendDeadlockWithDumpFailure(failure: DeadlockWithDum
     for ((t, stackTrace) in failure.threadDump) {
         val threadNumber = if (t is FixedActiveThreadsExecutor.TestThread) t.iThread.toString() else "?"
         appendLine("Thread-$threadNumber:")
-        stackTrace.map {
-            StackTraceElement(it.className.removePrefix(TransformationClassLoader.REMAPPED_PACKAGE_CANONICAL_NAME), it.methodName, it.fileName, it.lineNumber)
-        }.map { it.toString() }.filter { line ->
-            "org.jetbrains.kotlinx.lincheck.strategy" !in line
-                && "org.jetbrains.kotlinx.lincheck.runner" !in line
-                && "org.jetbrains.kotlinx.lincheck.UtilsKt" !in line
-        }.forEach { appendLine("\t$it") }
+        appendStackTrace(stackTrace)
     }
     return this
+}
+
+private fun StringBuilder.appendStackTrace(stackTrace: Array<StackTraceElement>) {
+    stackTrace.map {
+        StackTraceElement(it.className.removePrefix(TransformationClassLoader.REMAPPED_PACKAGE_CANONICAL_NAME), it.methodName, it.fileName, it.lineNumber)
+    }.map { it.toString() }.filter { line ->
+        "org.jetbrains.kotlinx.lincheck.strategy" !in line
+                && "org.jetbrains.kotlinx.lincheck.runner" !in line
+                && "org.jetbrains.kotlinx.lincheck.UtilsKt" !in line
+    }.forEach { appendLine("\t$it") }
 }
 
 private fun StringBuilder.appendIncorrectResultsFailure(failure: IncorrectResultsFailure): StringBuilder {
@@ -224,6 +229,16 @@ private fun StringBuilder.appendIncorrectResultsFailure(failure: IncorrectResult
     if (failure.results.parallelResultsWithClock.flatten().any { !it.clockOnStart.empty })
         appendln("\n---\nvalues in \"[..]\" brackets indicate the number of completed operations \n" +
             "in each of the parallel threads seen at the beginning of the current operation\n---")
+    failure.results.crashes.forEachIndexed { threadId, threadCrashes ->
+        if (threadCrashes.isNotEmpty()) {
+            appendLine("\nCrashes on thread $threadId:")
+            threadCrashes.forEach { crash ->
+                val actor = if (crash.actorIndex == -1) "constructor" else "actor ${1 + crash.actorIndex}"
+                appendLine("Crashed inside $actor:")
+                appendCrash(crash)
+            }
+        }
+    }
     return this
 }
 
@@ -251,4 +266,8 @@ internal fun StringBuilder.appendStateEquivalenceViolationMessage(sequentialSpec
         "At the current moment, `${sequentialSpecification.simpleName}` does not specify it, or the equivalence relation implementation is incorrect.\n" +
         "To fix this, please implement `equals()` and `hashCode()` functions on `${sequentialSpecification.simpleName}`; the simplest way is to extend `VerifierState`\n" +
         "and override the `extractState()` function, which is called at once and the result of which is used for further `equals()` and `hashCode()` invocations.")
+}
+
+private fun StringBuilder.appendCrash(crash: CrashError) {
+    appendStackTrace(crash.crashStackTrace)
 }

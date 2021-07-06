@@ -149,7 +149,8 @@ class LTS(sequentialSpecification: Class<*>) {
             this is ExceptionResult && transitionInfo.result is ExceptionResult && this.tClazz == transitionInfo.result.tClazz &&
                 (!wasSuspended && transitionInfo.result.wasSuspended || wasSuspended && allowExtraSuspension) ||
             this == VoidResult && transitionInfo.result == SuspendedVoidResult ||
-            this == SuspendedVoidResult && transitionInfo.result == VoidResult && allowExtraSuspension
+            this == SuspendedVoidResult && transitionInfo.result == VoidResult && allowExtraSuspension ||
+            this == CrashResult
 
 
         private inline fun <T> copyAndApply(

@@ -23,6 +23,7 @@ package org.jetbrains.kotlinx.lincheck.strategy.stress
 
 import org.jetbrains.kotlinx.lincheck.Options
 import org.jetbrains.kotlinx.lincheck.chooseSequentialSpecification
+import org.jetbrains.kotlinx.lincheck.nvm.StrategyRecoveryOptions
 
 /**
  * Options for [stress][StressStrategy] strategy.
@@ -40,6 +41,7 @@ open class StressOptions : Options<StressOptions, StressCTestConfiguration>() {
     override fun createTestConfigurations(testClass: Class<*>): StressCTestConfiguration {
         return StressCTestConfiguration(testClass, iterations, threads, actorsPerThread, actorsBefore, actorsAfter, executionGenerator,
                 verifier, invocationsPerIteration, requireStateEquivalenceImplementationCheck, minimizeFailedScenario,
-                chooseSequentialSpecification(sequentialSpecification, testClass), timeoutMs, customScenarios)
+                chooseSequentialSpecification(sequentialSpecification, testClass), timeoutMs, customScenarios,
+                recover.createModel(StrategyRecoveryOptions.STRESS))
     }
 }

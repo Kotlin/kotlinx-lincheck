@@ -23,6 +23,7 @@ package org.jetbrains.kotlinx.lincheck.strategy.managed
 
 import org.jetbrains.kotlinx.lincheck.*
 import org.jetbrains.kotlinx.lincheck.CancellationResult.*
+import org.jetbrains.kotlinx.lincheck.nvm.CrashError
 import org.jetbrains.kotlinx.lincheck.TransformationClassLoader.*
 import java.math.*
 import kotlin.coroutines.*
@@ -147,7 +148,10 @@ internal class MethodCallTracePoint(
         append(")")
         if (returnedValue != NO_VALUE)
             append(": ${adornedStringRepresentation(returnedValue)}")
-        else if (thrownException != null && thrownException != ForcibleExecutionFinishException)
+        else if (thrownException != null &&
+            thrownException != ForcibleExecutionFinishException &&
+            thrownException !is CrashError
+        )
             append(": threw ${thrownException!!.javaClass.simpleName}")
         append(" at ${stackTraceElement.shorten()}")
     }.toString()
@@ -241,6 +245,20 @@ internal class CoroutineCancellationTracePoint(
             CANCELLATION_FAILED -> "CANCELLATION ATTEMPT FAILED"
         }
     }
+}
+
+internal class CrashTracePoint(
+    iThread: Int, actorId: Int,
+    callStackTrace: CallStackTrace,
+    private val reason: CrashReason
+) : TracePoint(iThread, actorId, callStackTrace) {
+    override fun toStringImpl(): String = reason.toString()
+}
+
+internal enum class CrashReason(private val reason: String) {
+    CRASH("CRASH"),
+    SYSTEM_CRASH("SYSTEM CRASH");
+    override fun toString() = reason
 }
 
 /**

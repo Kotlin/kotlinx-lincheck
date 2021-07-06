@@ -206,7 +206,7 @@ private class TraceLeafEvent(
 ) : TraceNode(iThread, last, verboseTrace, callDepth) {
     override val lastState: String? = if (event is StateRepresentationTracePoint) event.stateRepresentation else null
     override val lastInternalEvent: TraceNode = this
-    override val shouldBeExpanded: Boolean = lastExecutedEvent || event is SwitchEventTracePoint || verboseTrace
+    override val shouldBeExpanded: Boolean = lastExecutedEvent || event is SwitchEventTracePoint || verboseTrace || event is CrashTracePoint
 
     override fun addRepresentationTo(traceRepresentation: MutableList<TraceEventRepresentation>): TraceNode? {
         val representation = traceIndentation() + event.toString()

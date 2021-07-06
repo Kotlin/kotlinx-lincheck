@@ -22,6 +22,7 @@
 package org.jetbrains.kotlinx.lincheck.execution
 
 import org.jetbrains.kotlinx.lincheck.*
+ import org.jetbrains.kotlinx.lincheck.nvm.CrashError
 
 /**
  * This class represents a result corresponding to
@@ -56,7 +57,11 @@ data class ExecutionResult(
     /**
      * State representation at the end of the scenario.
      */
-    val afterPostStateRepresentation: String?
+    val afterPostStateRepresentation: String?,
+    /**
+     * Crashes occurred while execution.
+     */
+    internal val crashes: List<List<CrashError>> = emptyList()
 ) {
     constructor(initResults: List<Result>, parallelResultsWithClock: List<List<ResultWithClock>>, postResults: List<Result>) :
         this(initResults, null, parallelResultsWithClock, null, postResults, null)
@@ -70,6 +75,8 @@ val ExecutionResult.withEmptyClocks: ExecutionResult get() = ExecutionResult(
     this.postResults,
     this.afterPostStateRepresentation
 )
+
+val ExecutionResult.withoutCrashes: ExecutionResult get() = if (crashes.isEmpty()) this else copy(crashes = emptyList())
 
 val ExecutionResult.parallelResults: List<List<Result>> get() = parallelResultsWithClock.map { it.map { r -> r.result } }
 

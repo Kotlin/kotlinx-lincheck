@@ -21,9 +21,9 @@
  */
 package org.jetbrains.kotlinx.lincheck.strategy.managed
 
-import kotlinx.coroutines.*
 import org.jetbrains.kotlinx.lincheck.*
 import org.jetbrains.kotlinx.lincheck.execution.*
+import org.jetbrains.kotlinx.lincheck.nvm.RecoverabilityModel
 import org.jetbrains.kotlinx.lincheck.verifier.*
 
 /**
@@ -36,10 +36,11 @@ abstract class ManagedCTestConfiguration(
     val checkObstructionFreedom: Boolean, val hangingDetectionThreshold: Int, val invocationsPerIteration: Int,
     val guarantees: List<ManagedStrategyGuarantee>, requireStateEquivalenceCheck: Boolean, minimizeFailedScenario: Boolean,
     sequentialSpecification: Class<*>, timeoutMs: Long, val eliminateLocalObjects: Boolean, val verboseTrace: Boolean,
-    customScenarios: List<ExecutionScenario>
+    customScenarios: List<ExecutionScenario>, recoverabilityModel: RecoverabilityModel
 ) : CTestConfiguration(
     testClass, iterations, threads, actorsPerThread, actorsBefore, actorsAfter, generatorClass, verifierClass,
-    requireStateEquivalenceCheck, minimizeFailedScenario, sequentialSpecification, timeoutMs, customScenarios
+    requireStateEquivalenceCheck, minimizeFailedScenario, sequentialSpecification, timeoutMs, customScenarios,
+    recoverabilityModel
 ) {
     companion object {
         const val DEFAULT_INVOCATIONS = 10000

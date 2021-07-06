@@ -23,7 +23,6 @@ package org.jetbrains.kotlinx.lincheck.verifier
 
 import org.jetbrains.kotlinx.lincheck.*
 import org.jetbrains.kotlinx.lincheck.execution.*
-import java.util.ArrayList
 
 /**
  * An abstraction for verifiers which use the labeled transition system (LTS) under the hood.
@@ -46,8 +45,9 @@ abstract class AbstractLTSVerifier(protected val sequentialSpecification: Class<
         // Traverse through next possible transitions using depth-first search (DFS). Note that
         // initial and post parts are represented as threads with ids `0` and `threads + 1` respectively.
         for (threadId in threads) {
-            val nextContext = nextContext(threadId)
-            if (nextContext !== null && nextContext.verify()) return true
+            for (nextContext in nextContext(threadId)) {
+                if (nextContext.verify()) return true
+            }
         }
         return false
     }
@@ -93,7 +93,7 @@ abstract class VerifierContext(
     /**
      * Counts next possible states and the corresponding contexts if the specified thread is executed.
      */
-    abstract fun nextContext(threadId: Int): VerifierContext?
+    abstract fun nextContext(threadId: Int): ContextContainer
 
     /**
      * Returns `true` if all actors in the specified thread are executed.
@@ -134,4 +134,19 @@ abstract class VerifierContext(
      * Returns the number of completed scenario threads.
      */
     private val completedThreads: Int get() = completedThreads(threads)
+}
+
+interface ContextContainer : Iterable<VerifierContext> {
+    companion object {
+        val EMPTY = object : ContextContainer {
+            override fun iterator() = object : Iterator<VerifierContext> {
+                override fun hasNext() = false
+                override fun next(): VerifierContext {
+                    error("Container size exceeded")
+                }
+
+            }
+
+        }
+    }
 }

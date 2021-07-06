@@ -27,6 +27,7 @@ import org.jetbrains.kotlinx.lincheck.annotations.Operation;
 import org.jetbrains.kotlinx.lincheck.execution.ExecutionGenerator;
 import org.jetbrains.kotlinx.lincheck.execution.ExecutionScenario;
 import org.jetbrains.kotlinx.lincheck.execution.RandomExecutionGenerator;
+import org.jetbrains.kotlinx.lincheck.nvm.Recover;
 import org.jetbrains.kotlinx.lincheck.verifier.DummySequentialSpecification;
 import org.jetbrains.kotlinx.lincheck.verifier.linearizability.LinearizabilityVerifier;
 import org.jetbrains.kotlinx.lincheck.verifier.Verifier;
@@ -124,6 +125,8 @@ public @interface StressCTest {
      * By default, the provided concurrent implementation is used in a sequential way.
      */
     Class<?> sequentialSpecification() default DummySequentialSpecification.class;
+
+    Recover recover() default Recover.NO_RECOVER;
 
     /**
      * Holder annotation for {@link StressCTest}.

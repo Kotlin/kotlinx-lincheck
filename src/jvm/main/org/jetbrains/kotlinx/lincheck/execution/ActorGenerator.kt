@@ -44,21 +44,30 @@ class ActorGenerator(
     private val cancellableOnSuspension = cancellableOnSuspension && isSuspendable
     private val promptCancellation = cancellableOnSuspension && promptCancellation
 
-    fun generate(threadId: Int): Actor {
+    fun generate(threadId: Int, operationId: Int): Actor {
+        val threadIdIndices = mutableListOf<Int>()
         val parameters = parameterGenerators
-            .map { it.generate() }
-            .map { if (it === THREAD_ID_TOKEN) threadId else it }
+            .map { if (it is OperationIdGen) operationId else it.generate() }
+            .mapIndexed { index, value ->
+                if (value === THREAD_ID_TOKEN) {
+                    threadIdIndices.add(index)
+                    threadId
+                } else {
+                    value
+                }
+            }
         val cancelOnSuspension = this.cancellableOnSuspension and DETERMINISTIC_RANDOM.nextBoolean()
         val promptCancellation = cancelOnSuspension and this.promptCancellation and DETERMINISTIC_RANDOM.nextBoolean()
         return Actor(
             method = method,
-            arguments = parameters,
+            arguments = parameters.toMutableList(),
             handledExceptions = handledExceptions,
             cancelOnSuspension = cancelOnSuspension,
             allowExtraSuspension = allowExtraSuspension,
             blocking = blocking,
             causesBlocking = causesBlocking,
-            promptCancellation = promptCancellation
+            promptCancellation = promptCancellation,
+            threadIdArgsIndices = threadIdIndices
         )
     }
 

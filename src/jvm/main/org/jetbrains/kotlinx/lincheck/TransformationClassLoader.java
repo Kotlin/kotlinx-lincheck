@@ -59,13 +59,7 @@ public class TransformationClassLoader extends ExecutionClassLoader {
         // Apply the strategy's transformer at first, then the runner's one.
         if (strategy.needsTransformation()) classTransformers.add(strategy::createTransformer);
         if (runner.needsTransformation()) classTransformers.add(runner::createTransformer);
-        remapper = UtilsKt.getRemapperByTransformers(
-                // create transformers just for their class information
-                classTransformers.stream()
-                        // pass any parameter to Transformer constructors - it won't be used
-                        .map(constructor -> constructor.apply(new TraceClassVisitor(null)))
-                        .collect(Collectors.toList())
-        );
+        remapper = UtilsKt.getRemapperByTransformers(strategy);
     }
 
     public TransformationClassLoader(Function<ClassVisitor, ClassVisitor> classTransformer) {

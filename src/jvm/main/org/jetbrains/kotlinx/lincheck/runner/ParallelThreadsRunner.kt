@@ -25,6 +25,9 @@ import kotlinx.coroutines.*
 import org.jetbrains.kotlinx.lincheck.*
 import org.jetbrains.kotlinx.lincheck.CancellationResult.*
 import org.jetbrains.kotlinx.lincheck.execution.*
+import org.jetbrains.kotlinx.lincheck.nvm.Recover
+import org.jetbrains.kotlinx.lincheck.nvm.RecoverabilityModel
+import org.jetbrains.kotlinx.lincheck.nvm.StrategyRecoveryOptions
 import org.jetbrains.kotlinx.lincheck.runner.FixedActiveThreadsExecutor.TestThread
 import org.jetbrains.kotlinx.lincheck.runner.UseClocks.*
 import org.jetbrains.kotlinx.lincheck.strategy.*
@@ -50,7 +53,8 @@ internal open class ParallelThreadsRunner(
     validationFunctions: List<Method>,
     stateRepresentationFunction: Method?,
     private val timeoutMs: Long, // for deadlock or livelock detection
-    private val useClocks: UseClocks // specifies whether `HBClock`-s should always be used or with some probability
+    private val useClocks: UseClocks, // specifies whether `HBClock`-s should always be used or with some probability
+    private val recoverModel: RecoverabilityModel = Recover.NO_RECOVER.createModel(StrategyRecoveryOptions.STRESS)
 ) : Runner(strategy, testClass, validationFunctions, stateRepresentationFunction) {
     private val runnerHash = this.hashCode() // helps to distinguish this runner threads from others
     private val executor = FixedActiveThreadsExecutor(scenario.threads, runnerHash) // shoukd be closed in `close()`
@@ -78,11 +82,13 @@ internal open class ParallelThreadsRunner(
     private val uninitializedThreads = AtomicInteger(scenario.threads) // for threads synchronization
     private var spinningTimeBeforeYield = 1000 // # of loop cycles
     private var yieldInvokedInOnStart = false
+    private val executionCallback = recoverModel.createExecutionCallback()
 
     override fun initialize() {
+        executionCallback.reset(scenario, recoverModel)
         super.initialize()
         testThreadExecutions = Array(scenario.threads) { t ->
-            TestThreadExecutionGenerator.create(this, t, scenario.parallelExecution[t], completions[t], scenario.hasSuspendableActors())
+            TestThreadExecutionGenerator.create(this, t, scenario.parallelExecution[t], completions[t], scenario.hasSuspendableActors(), recoverModel.createActorCrashHandlerGenerator())
         }
         testThreadExecutions.forEach { it.allThreadExecutions = testThreadExecutions }
     }
@@ -245,8 +251,10 @@ internal open class ParallelThreadsRunner(
         suspensionPointResults[iThread][actorId] != NoResult || completions[iThread][actorId].resWithCont.get() != null
 
     override fun run(): InvocationResult {
+        beforeInit()
         reset()
         val initResults = scenario.initExecution.mapIndexed { i, initActor ->
+            onBeforeActorStart()
             executeActor(testInstance, initActor).also {
                 executeValidationFunctions(testInstance, validationFunctions) { functionName, exception ->
                     val s = ExecutionScenario(
@@ -259,6 +267,7 @@ internal open class ParallelThreadsRunner(
             }
         }
         val afterInitStateRepresentation = constructStateRepresentation()
+        beforeParallel(scenario.threads)
         try {
             executor.submitAndAwait(testThreadExecutions, timeoutMs)
         } catch (e: TimeoutException) {
@@ -281,7 +290,9 @@ internal open class ParallelThreadsRunner(
         val afterParallelStateRepresentation = constructStateRepresentation()
         val dummyCompletion = Continuation<Any?>(EmptyCoroutineContext) {}
         var postPartSuspended = false
+        beforePost()
         val postResults = scenario.postExecution.mapIndexed { i, postActor ->
+            onAfterActorStart()
             // no actors are executed after suspension of a post part
             val result = if (postPartSuspended) {
                 NoResult
@@ -305,13 +316,39 @@ internal open class ParallelThreadsRunner(
         val results = ExecutionResult(
             initResults, afterInitStateRepresentation,
             parallelResultsWithClock, afterParallelStateRepresentation,
-            postResults, afterPostStateRepresentation
+            postResults, afterPostStateRepresentation, getCrashes()
         )
+        afterPost()
         return CompletedInvocationResult(results)
+    }
+
+    private fun beforeInit() = executionCallback.beforeInit(scenario, recoverModel)
+    private fun beforeParallel(threads: Int) = executionCallback.beforeParallel(threads)
+    private fun beforePost() = executionCallback.beforePost()
+    private fun afterPost() = executionCallback.afterPost()
+    private fun onBeforeActorStart() = executionCallback.onBeforeActorStart()
+    private fun onAfterActorStart() = executionCallback.onAfterActorStart()
+    override fun onEnterActorBody(iThread: Int, iActor: Int) = executionCallback.onEnterActorBody(iThread, iActor)
+    override fun onExitActorBody(iThread: Int, iActor: Int) = executionCallback.onExitActorBody(iThread, iActor)
+    private fun getCrashes() = executionCallback.getCrashes()
+    override fun onActorStart(iThread: Int) {
+        super.onActorStart(iThread)
+        executionCallback.onActorStart(iThread)
+    }
+
+    override fun onFailure(iThread: Int, e: Throwable) {
+        super.onFailure(iThread, e)
+        executionCallback.onFinish(iThread)
+    }
+
+    override fun onFinish(iThread: Int) {
+        super.onFinish(iThread)
+        executionCallback.onFinish(iThread)
     }
 
     override fun onStart(iThread: Int) {
         super.onStart(iThread)
+        executionCallback.onStart(iThread)
         uninitializedThreads.decrementAndGet() // this thread has finished initialization
         // wait for other threads to start
         var i = 1
@@ -325,7 +362,7 @@ internal open class ParallelThreadsRunner(
     }
 
     override fun needsTransformation() = true
-    override fun createTransformer(cv: ClassVisitor) = CancellabilitySupportClassTransformer(cv)
+    override fun createTransformer(cv: ClassVisitor): ClassVisitor = CancellabilitySupportClassTransformer(cv)
 
     override fun constructStateRepresentation() =
         stateRepresentationFunction?.let{ getMethod(testInstance, it) }?.invoke(testInstance) as String?

@@ -23,6 +23,8 @@ package org.jetbrains.kotlinx.lincheck.strategy.managed
 
 import org.jetbrains.kotlinx.lincheck.*
 import org.jetbrains.kotlinx.lincheck.TransformationClassLoader.*
+import org.jetbrains.kotlinx.lincheck.annotations.CrashFree
+import org.jetbrains.kotlinx.lincheck.nvm.*
 import org.objectweb.asm.*
 import org.objectweb.asm.Opcodes.*
 import org.objectweb.asm.Type
@@ -44,7 +46,8 @@ internal class ManagedStrategyTransformer(
     private val eliminateLocalObjects: Boolean,
     private val collectStateRepresentation: Boolean,
     private val constructTraceRepresentation: Boolean,
-    private val codeLocationIdProvider: CodeLocationIdProvider
+    private val codeLocationIdProvider: CodeLocationIdProvider,
+    private val crashEnabledVisitor: CrashEnabledVisitor
 ) : ClassVisitor(ASM_API, ClassRemapper(cv, JavaUtilRemapper())) {
     private lateinit var className: String
     private var classVersion = 0
@@ -91,6 +94,7 @@ internal class ManagedStrategyTransformer(
         mv = WaitNotifyTransformer(mname, GeneratorAdapter(mv, access, mname, desc))
         mv = ParkUnparkTransformer(mname, GeneratorAdapter(mv, access, mname, desc))
         mv = LocalObjectManagingTransformer(mname, GeneratorAdapter(mv, access, mname, desc))
+        if (crashEnabledVisitor.shouldTransform) mv = CrashManagedTransformer(mname, GeneratorAdapter(mv, access, mname, desc))
         mv = SharedVariableAccessMethodTransformer(mname, GeneratorAdapter(mv, access, mname, desc))
         mv = TimeStubTransformer(GeneratorAdapter(mv, access, mname, desc))
         mv = RandomTransformer(GeneratorAdapter(mv, access, mname, desc))
@@ -1124,6 +1128,62 @@ internal class ManagedStrategyTransformer(
         }
     }
 
+    private inner class CrashManagedTransformer(methodName: String, mv: GeneratorAdapter) : ManagedStrategyMethodVisitor(methodName, mv) {
+        private var shouldTransform = methodName != "<clinit>" && (mv.access and ACC_BRIDGE) == 0
+        private var superConstructorCalled = methodName != "<init>"
+
+        override fun visitAnnotation(descriptor: String?, visible: Boolean): AnnotationVisitor {
+            if (descriptor == CRASH_FREE_TYPE) {
+                shouldTransform = false
+            }
+            return adapter.visitAnnotation(descriptor, visible)
+        }
+
+        override fun visitMethodInsn(
+            opcode: Int,
+            owner: String?,
+            name: String?,
+            descriptor: String?,
+            isInterface: Boolean
+        ) {
+            if (!superConstructorCalled && opcode == INVOKESPECIAL) {
+                superConstructorCalled = true
+            }
+            if (owner !== null && owner.startsWith("org/jetbrains/kotlinx/lincheck/nvm/api/")) {
+                // Here the order of points is crucial - switch point must be before crash point.
+                // The use case is the following: thread switches on the switch point,
+                // then another thread initiates a system crash, force switches to the first thread
+                // which crashes immediately.
+                invokeBeforeNVMOperation()
+                if (name !== null && name.toLowerCase().contains("flush")) invokeBeforeCrashPoint()
+            }
+            adapter.visitMethodInsn(opcode, owner, name, descriptor, isInterface)
+        }
+
+        override fun visitInsn(opcode: Int) {
+            if (opcode in returnInstructions) invokeBeforeCrashPoint()
+            adapter.visitInsn(opcode)
+        }
+
+        private fun invokeBeforeCrashPoint() {
+            if (!shouldTransform || !superConstructorCalled) return
+            loadStrategy()
+            loadCurrentThreadNumber()
+            adapter.invokeVirtual(MANAGED_STRATEGY_TYPE, BEFORE_CRASH_METHOD)
+        }
+
+        private fun invokeBeforeNVMOperation() {
+            if (!shouldTransform || !superConstructorCalled) return
+            loadStrategy()
+            loadCurrentThreadNumber()
+            val tracePointLocal = newTracePointLocal()
+            loadNewCodeLocationAndTracePoint(tracePointLocal, METHOD_TRACE_POINT_TYPE) { iThread, actorId, callStackTrace, ste -> MethodCallTracePoint(iThread, actorId, callStackTrace, methodName, ste) }
+            adapter.invokeVirtual(MANAGED_STRATEGY_TYPE, BEFORE_NVM_OPERATION_METHOD)
+        }
+    }
+
+    private val returnInstructions = listOf(RETURN, ARETURN, DRETURN, FRETURN, IRETURN, LRETURN)
+
     private open inner class ManagedStrategyMethodVisitor(protected val methodName: String, val adapter: GeneratorAdapter) : MethodVisitor(ASM_API, adapter) {
         private var lineNumber = 0
 
@@ -1312,6 +1372,7 @@ private val WAIT_TRACE_POINT_TYPE = Type.getType(WaitTracePoint::class.java)
 private val NOTIFY_TRACE_POINT_TYPE = Type.getType(NotifyTracePoint::class.java)
 private val PARK_TRACE_POINT_TYPE = Type.getType(ParkTracePoint::class.java)
 private val UNPARK_TRACE_POINT_TYPE = Type.getType(UnparkTracePoint::class.java)
+private val CRASH_FREE_TYPE = Type.getDescriptor(CrashFree::class.java)
 
 private val CURRENT_THREAD_NUMBER_METHOD = Method.getMethod(ManagedStrategy::currentThreadNumber.javaMethod)
 private val BEFORE_SHARED_VARIABLE_READ_METHOD = Method.getMethod(ManagedStrategy::beforeSharedVariableRead.javaMethod)
@@ -1321,6 +1382,8 @@ private val BEFORE_LOCK_RELEASE_METHOD = Method.getMethod(ManagedStrategy::befor
 private val BEFORE_WAIT_METHOD = Method.getMethod(ManagedStrategy::beforeWait.javaMethod)
 private val BEFORE_NOTIFY_METHOD = Method.getMethod(ManagedStrategy::beforeNotify.javaMethod)
 private val BEFORE_PARK_METHOD = Method.getMethod(ManagedStrategy::beforePark.javaMethod)
+private val BEFORE_CRASH_METHOD = Method.getMethod(ManagedStrategy::beforeCrashPoint.javaMethod)
+private val BEFORE_NVM_OPERATION_METHOD = Method.getMethod(ManagedStrategy::beforeNVMOperation.javaMethod)
 private val AFTER_UNPARK_METHOD = Method.getMethod(ManagedStrategy::afterUnpark.javaMethod)
 private val ENTER_IGNORED_SECTION_METHOD = Method.getMethod(ManagedStrategy::enterIgnoredSection.javaMethod)
 private val LEAVE_IGNORED_SECTION_METHOD = Method.getMethod(ManagedStrategy::leaveIgnoredSection.javaMethod)

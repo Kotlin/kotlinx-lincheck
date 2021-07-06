@@ -22,6 +22,7 @@
 package org.jetbrains.kotlinx.lincheck.strategy.managed.modelchecking
 
 import org.jetbrains.kotlinx.lincheck.execution.*
+import org.jetbrains.kotlinx.lincheck.nvm.RecoverabilityModel
 import org.jetbrains.kotlinx.lincheck.strategy.*
 import org.jetbrains.kotlinx.lincheck.strategy.managed.*
 import org.jetbrains.kotlinx.lincheck.verifier.*
@@ -35,11 +36,11 @@ class ModelCheckingCTestConfiguration(testClass: Class<*>, iterations: Int, thre
                                       checkObstructionFreedom: Boolean, hangingDetectionThreshold: Int, invocationsPerIteration: Int,
                                       guarantees: List<ManagedStrategyGuarantee>, requireStateEquivalenceCheck: Boolean, minimizeFailedScenario: Boolean,
                                       sequentialSpecification: Class<*>, timeoutMs: Long, eliminateLocalObjects: Boolean, verboseTrace: Boolean,
-                                      customScenarios: List<ExecutionScenario>
+                                      customScenarios: List<ExecutionScenario>, recoverabilityModel: RecoverabilityModel
 ) : ManagedCTestConfiguration(testClass, iterations, threads, actorsPerThread, actorsBefore, actorsAfter, generatorClass, verifierClass,
     checkObstructionFreedom, hangingDetectionThreshold, invocationsPerIteration, guarantees, requireStateEquivalenceCheck,
-    minimizeFailedScenario, sequentialSpecification, timeoutMs, eliminateLocalObjects, verboseTrace, customScenarios) {
+    minimizeFailedScenario, sequentialSpecification, timeoutMs, eliminateLocalObjects, verboseTrace, customScenarios, recoverabilityModel) {
     override fun createStrategy(testClass: Class<*>, scenario: ExecutionScenario, validationFunctions: List<Method>,
                                 stateRepresentationMethod: Method?, verifier: Verifier): Strategy
-        = ModelCheckingStrategy(this, testClass, scenario, validationFunctions, stateRepresentationMethod, verifier)
+        = ModelCheckingStrategy(this, testClass, scenario, validationFunctions, stateRepresentationMethod, verifier, recoverabilityModel)
 }

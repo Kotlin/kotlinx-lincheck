@@ -22,31 +22,29 @@
 package org.jetbrains.kotlinx.lincheck.strategy.stress
 
 import org.jetbrains.kotlinx.lincheck.execution.*
+import org.jetbrains.kotlinx.lincheck.nvm.RecoverabilityModel
 import org.jetbrains.kotlinx.lincheck.runner.*
 import org.jetbrains.kotlinx.lincheck.strategy.*
 import org.jetbrains.kotlinx.lincheck.verifier.*
+import org.objectweb.asm.ClassVisitor
 import java.lang.reflect.*
 
 class StressStrategy(
     testCfg: StressCTestConfiguration,
-    testClass: Class<*>,
+    private val testClass: Class<*>,
     scenario: ExecutionScenario,
     validationFunctions: List<Method>,
     stateRepresentationFunction: Method?,
-    private val verifier: Verifier
+    private val verifier: Verifier,
+    private val recoverabilityModel: RecoverabilityModel
 ) : Strategy(scenario) {
     private val invocations = testCfg.invocationsPerIteration
-    private val runner: Runner
+    private val runner: Runner = ParallelThreadsRunner(
+        this, testClass, validationFunctions, stateRepresentationFunction, testCfg.timeoutMs,
+        UseClocks.RANDOM, recoverabilityModel
+    )
 
     init {
-        runner = ParallelThreadsRunner(
-            strategy = this,
-            testClass = testClass,
-            validationFunctions = validationFunctions,
-            stateRepresentationFunction = stateRepresentationFunction,
-            timeoutMs = testCfg.timeoutMs,
-            useClocks = UseClocks.RANDOM
-        )
         try {
             runner.initialize()
         } catch (t: Throwable) {
@@ -70,4 +68,8 @@ class StressStrategy(
             return null
         }
     }
+
+    override fun needsTransformation() = recoverabilityModel.needsTransformation()
+    override fun createTransformer(cv: ClassVisitor) =
+        recoverabilityModel.createTransformerWrapper(recoverabilityModel.createTransformer(cv, testClass), testClass)
 }

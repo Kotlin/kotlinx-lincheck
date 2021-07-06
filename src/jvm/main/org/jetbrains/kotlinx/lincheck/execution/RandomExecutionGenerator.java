@@ -42,13 +42,14 @@ public class RandomExecutionGenerator extends ExecutionGenerator {
 
     @Override
     public ExecutionScenario nextExecution() {
+        int operationId = 0;
         // Create init execution part
         List<ActorGenerator> validActorGeneratorsForInit = testStructure.actorGenerators.stream()
             .filter(ag -> !ag.getUseOnce() && !ag.isSuspendable()).collect(Collectors.toList());
         List<Actor> initExecution = new ArrayList<>();
         for (int i = 0; i < testConfiguration.getActorsBefore() && !validActorGeneratorsForInit.isEmpty(); i++) {
             ActorGenerator ag = validActorGeneratorsForInit.get(random.nextInt(validActorGeneratorsForInit.size()));
-            initExecution.add(ag.generate(0));
+            initExecution.add(ag.generate(0, operationId++));
         }
         // Create parallel execution part
         // Construct non-parallel groups and parallel one
@@ -86,7 +87,7 @@ public class RandomExecutionGenerator extends ExecutionGenerator {
                     agen = getActorGenFromGroup(parallelGroup,
                         aGenIndex - threadGen.nonParallelActorGenerators.size());
                 }
-                parallelExecution.get(threadGen.iThread).add(agen.generate(threadGen.iThread + 1));
+                parallelExecution.get(threadGen.iThread).add(agen.generate(threadGen.iThread + 1, operationId++));
                 if (--threadGen.left == 0)
                     it.remove();
             }
@@ -101,7 +102,7 @@ public class RandomExecutionGenerator extends ExecutionGenerator {
                 leftActorGenerators.addAll(threadGen.nonParallelActorGenerators);
             for (int i = 0; i < testConfiguration.getActorsAfter() && !leftActorGenerators.isEmpty(); i++) {
                 ActorGenerator agen = getActorGenFromGroup(leftActorGenerators, random.nextInt(leftActorGenerators.size()));
-                postExecution.add(agen.generate(testConfiguration.getThreads() + 1));
+                postExecution.add(agen.generate(testConfiguration.getThreads() + 1, operationId++));
             }
         } else {
             postExecution = Collections.emptyList();

@@ -56,7 +56,7 @@ internal fun actor(f: KFunction<*>, vararg args: Any?, cancelOnSuspension: Boole
     require(method.exceptionTypes.all { Throwable::class.java.isAssignableFrom(it) }) { "Not all declared exceptions are Throwable" }
     return Actor(
         method = method,
-        arguments = args.toList(),
+        arguments = args.toMutableList(),
         handledExceptions = (method.exceptionTypes as Array<Class<out Throwable>>).toList(),
         cancelOnSuspension = cancelOnSuspension
     )

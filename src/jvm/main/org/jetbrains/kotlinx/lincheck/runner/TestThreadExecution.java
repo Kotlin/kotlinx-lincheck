@@ -42,6 +42,7 @@ public abstract class TestThreadExecution implements Runnable {
     public int[][] clocks; // for HBClock
     public volatile int curClock;
     public boolean useClocks;
+    public boolean useClocksOnce = false;
 
     public void readClocks(int currentActor) {
         for (int i = 0; i < allThreadExecutions.length; i++) {
@@ -51,5 +52,13 @@ public abstract class TestThreadExecution implements Runnable {
 
     public void incClock() {
         curClock++;
+    }
+
+    public void useClocksOnce() {
+        useClocksOnce = true;
+    }
+
+    public void resetUseClocksOnce() {
+        useClocksOnce = false;
     }
 }

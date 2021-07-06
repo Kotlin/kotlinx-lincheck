@@ -22,6 +22,7 @@
 package org.jetbrains.kotlinx.lincheck.strategy.managed.modelchecking
 
 import org.jetbrains.kotlinx.lincheck.*
+import org.jetbrains.kotlinx.lincheck.nvm.StrategyRecoveryOptions
 import org.jetbrains.kotlinx.lincheck.strategy.managed.*
 
 /**
@@ -33,6 +34,6 @@ class ModelCheckingOptions : ManagedOptions<ModelCheckingOptions, ModelCheckingC
                 executionGenerator, verifier, checkObstructionFreedom, hangingDetectionThreshold, invocationsPerIteration,
                 guarantees, requireStateEquivalenceImplementationCheck, minimizeFailedScenario,
                 chooseSequentialSpecification(sequentialSpecification, testClass), timeoutMs, eliminateLocalObjects,
-                verboseTrace, customScenarios)
+                verboseTrace, customScenarios, recover.createModel(StrategyRecoveryOptions.MANAGED))
     }
 }

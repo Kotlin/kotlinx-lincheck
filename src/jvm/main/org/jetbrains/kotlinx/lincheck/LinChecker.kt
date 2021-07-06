@@ -23,7 +23,10 @@ package org.jetbrains.kotlinx.lincheck
 
 import org.jetbrains.kotlinx.lincheck.annotations.*
 import org.jetbrains.kotlinx.lincheck.execution.*
+import org.jetbrains.kotlinx.lincheck.nvm.Crash
+import org.jetbrains.kotlinx.lincheck.nvm.Probability
 import org.jetbrains.kotlinx.lincheck.strategy.*
+import org.jetbrains.kotlinx.lincheck.strategy.stress.StressCTestConfiguration
 import org.jetbrains.kotlinx.lincheck.verifier.*
 import kotlin.reflect.*
 
@@ -73,6 +76,7 @@ class LinChecker (private val testClass: Class<*>, options: Options<*, *>?) {
             if (failure != null) return failure
         }
         repeat(iterations) { i ->
+            Probability.setSeed(i)
             val scenario = exGen.nextExecution()
             scenario.validate()
             reporter.logIteration(i + 1 + customScenarios.size, iterations, scenario)
@@ -118,6 +122,8 @@ class LinChecker (private val testClass: Class<*>, options: Options<*, *>?) {
             val failure = tryMinimize(threads + 1, j, testCfg)
             if (failure != null) return failure
         }
+        if (testCfg is StressCTestConfiguration && testCfg.recoverabilityModel.crashes)
+            return minimizeCrashes(testCfg).also { Probability.resetExpectedCrashes() }
         return null
     }
 
@@ -129,10 +135,40 @@ class LinChecker (private val testClass: Class<*>, options: Options<*, *>?) {
             // Also remove the empty thread
             newScenario.parallelExecution.removeAt(threadId - 1)
         }
-        return if (newScenario.isValid) {
+        return newScenario.runTryMinimize(testCfg)
+    }
+
+    private fun ExecutionScenario.runTryMinimize(testCfg: CTestConfiguration): LincheckFailure? {
+        setThreadIds()
+        return if (isValid) {
             val verifier = testCfg.createVerifier(checkStateEquivalence = false)
-            newScenario.run(testCfg, verifier)
+            run(testCfg, verifier)
         } else null
+    }
+
+    private fun IncorrectResultsFailure.crashesNumber() = results.crashes.sumBy { it.size }
+
+    private fun ExecutionScenario.minimizeCrashes(
+        testCfg: CTestConfiguration,
+        crashes: Int = testCfg.recoverabilityModel.defaultExpectedCrashes() + 1 // +1 here to replace proxy exceptions with normal ones
+    ): LincheckFailure? {
+        Probability.minimizeCrashes(crashes - 1)
+        repeat(100) {
+            Crash.useProxyCrash = false
+            val newIteration = runTryMinimize(testCfg)
+            Crash.useProxyCrash = true
+            if (newIteration != null
+                && newIteration is IncorrectResultsFailure
+                && newIteration.crashesNumber() < crashes
+            ) return newIteration.scenario.minimizeCrashes(testCfg, newIteration.crashesNumber())
+        }
+        return null
+    }
+
+    private fun List<Actor>.setThreadId(threadId: Int) = forEach { actor -> actor.setThreadId(threadId) }
+    private fun ExecutionScenario.setThreadIds() {
+        parallelExecution.forEachIndexed { index, actors -> actors.setThreadId(index + 1) }
+        postExecution.setThreadId(parallelExecution.size + 1)
     }
 
     private fun ExecutionScenario.run(testCfg: CTestConfiguration, verifier: Verifier): LincheckFailure? =

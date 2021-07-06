@@ -33,7 +33,7 @@ import kotlin.reflect.jvm.*
  */
 data class Actor @JvmOverloads constructor(
     val method: Method,
-    val arguments: List<Any?>,
+    val arguments: MutableList<Any?>,
     val handledExceptions: List<Class<out Throwable>> = emptyList(),
     val cancelOnSuspension: Boolean = false,
     val allowExtraSuspension: Boolean = false,
@@ -42,7 +42,8 @@ data class Actor @JvmOverloads constructor(
     val promptCancellation: Boolean = false,
     // we have to specify `isSuspendable` property explicitly for transformed classes since
     // `isSuspendable` implementation produces a circular dependency and, therefore, fails.
-    val isSuspendable: Boolean = method.isSuspendable()
+    val isSuspendable: Boolean = method.isSuspendable(),
+    val threadIdArgsIndices: List<Int> = emptyList()
 ) {
     init {
         if (promptCancellation) require(cancelOnSuspension) {
@@ -57,6 +58,8 @@ data class Actor @JvmOverloads constructor(
         (if (cancelOnSuspension) "cancel" else "")
 
     val handlesExceptions = handledExceptions.isNotEmpty()
+
+    fun setThreadId(threadId: Int) = threadIdArgsIndices.forEach { index -> arguments[index] = threadId }
 }
 
 fun Method.isSuspendable(): Boolean = kotlinFunction?.isSuspend ?: false
