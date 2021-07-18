@@ -64,10 +64,17 @@ internal class ObstructionFreedomViolationFailure(
     trace: Trace? = null
 ) : LincheckFailure(scenario, trace)
 
+internal class LivelockWithDumpFailure(
+    scenario: ExecutionScenario,
+    val threadDump: Map<Thread, Array<StackTraceElement>>,
+    trace: Trace? = null
+) : LincheckFailure(scenario, trace)
+
 internal fun InvocationResult.toLincheckFailure(scenario: ExecutionScenario, trace: Trace? = null) = when (this) {
     is DeadlockInvocationResult -> DeadlockWithDumpFailure(scenario, threadDump, trace)
     is UnexpectedExceptionInvocationResult -> UnexpectedExceptionFailure(scenario, exception, trace)
     is ValidationFailureInvocationResult -> ValidationFailure(scenario, functionName, exception, trace)
     is ObstructionFreedomViolationInvocationResult -> ObstructionFreedomViolationFailure(scenario, reason, trace)
+    is LivelockInvocationResult -> LivelockWithDumpFailure(scenario, threadDump, trace)
     else -> error("Unexpected invocation result type: ${this.javaClass.simpleName}")
 }

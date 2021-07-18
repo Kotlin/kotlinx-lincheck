@@ -22,6 +22,7 @@ package org.jetbrains.kotlinx.lincheck;
  * #L%
  */
 
+import org.jetbrains.kotlinx.lincheck.runner.TestNodeExecution;
 import org.jetbrains.kotlinx.lincheck.runner.TestThreadExecution;
 
 /**
@@ -31,5 +32,9 @@ import org.jetbrains.kotlinx.lincheck.runner.TestThreadExecution;
 public class ExecutionClassLoader extends ClassLoader {
     public Class<? extends TestThreadExecution> defineClass(String className, byte[] bytecode) {
         return (Class<? extends TestThreadExecution>) super.defineClass(className, bytecode, 0, bytecode.length);
+    }
+
+    public Class<? extends TestNodeExecution> defineNodeClass(String className, byte[] bytecode) {
+        return (Class<? extends TestNodeExecution>) super.defineClass(className, bytecode, 0, bytecode.length);
     }
 }

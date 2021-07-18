@@ -58,7 +58,7 @@ typealias ResumedTickets = Set<Int>
 class LTS(sequentialSpecification: Class<*>) {
     // we should transform the specification with `CancellabilitySupportClassTransformer`
     private val sequentialSpecification: Class<*> = TransformationClassLoader { cv -> CancellabilitySupportClassTransformer(cv)}
-                                                    .loadClass(sequentialSpecification.name)!!
+        .loadClass(sequentialSpecification.name)!!
 
     /**
      * Cache with all LTS states in order to reuse the equivalent ones.
@@ -139,17 +139,18 @@ class LTS(sequentialSpecification: Class<*>) {
 
         private fun Result.isLegalByRequest(transitionInfo: TransitionInfo, allowExtraSuspension: Boolean) =
             isLegalByFollowUp(transitionInfo, allowExtraSuspension) ||
-            this.wasSuspended && (transitionInfo.result == Suspended || allowExtraSuspension) ||
-            !this.wasSuspended && transitionInfo.result == Suspended
+                    this.wasSuspended && (transitionInfo.result == Suspended || allowExtraSuspension) ||
+                    !this.wasSuspended && transitionInfo.result == Suspended
 
         private fun Result.isLegalByFollowUp(transitionInfo: TransitionInfo, allowExtraSuspension: Boolean) =
             this == transitionInfo.result ||
-            this is ValueResult && transitionInfo.result is ValueResult && this.value == transitionInfo.result.value &&
-                (!wasSuspended && transitionInfo.result.wasSuspended || wasSuspended && allowExtraSuspension) ||
-            this is ExceptionResult && transitionInfo.result is ExceptionResult && this.tClazz == transitionInfo.result.tClazz &&
-                (!wasSuspended && transitionInfo.result.wasSuspended || wasSuspended && allowExtraSuspension) ||
-            this == VoidResult && transitionInfo.result == SuspendedVoidResult ||
-            this == SuspendedVoidResult && transitionInfo.result == VoidResult && allowExtraSuspension
+                    this is ValueResult && transitionInfo.result is ValueResult && this.value == transitionInfo.result.value &&
+                    (!wasSuspended && transitionInfo.result.wasSuspended || wasSuspended && allowExtraSuspension) ||
+                    this is ExceptionResult && transitionInfo.result is ExceptionResult && this.tClazz == transitionInfo.result.tClazz &&
+                    (!wasSuspended && transitionInfo.result.wasSuspended || wasSuspended && allowExtraSuspension) ||
+                    this == VoidResult && transitionInfo.result == SuspendedVoidResult ||
+                    this == SuspendedVoidResult && transitionInfo.result == VoidResult && allowExtraSuspension ||
+                    this == CrashResult
 
 
         private inline fun <T> copyAndApply(
@@ -215,11 +216,11 @@ class LTS(sequentialSpecification: Class<*>) {
             FOLLOW_UP -> {
                 val (cont, suspensionPointRes) = resumedOperations[ticket]!!.contWithSuspensionPointRes
                 val finalRes = (
-                    if (cont == null) suspensionPointRes // Resumed operation has no follow-up.
-                    else {
-                        cont.resumeWith(suspensionPointRes)
-                        resumedOperations[ticket]!!.contWithSuspensionPointRes.second
-                    })
+                        if (cont == null) suspensionPointRes // Resumed operation has no follow-up.
+                        else {
+                            cont.resumeWith(suspensionPointRes)
+                            resumedOperations[ticket]!!.contWithSuspensionPointRes.second
+                        })
                 resumedOperations.remove(ticket)
                 createLincheckResult(finalRes, wasSuspended = true)
             }
@@ -358,8 +359,8 @@ private class StateInfo(
     override fun equals(other: Any?): Boolean {
         if (other !is StateInfo) return false
         return instance == other.instance &&
-            suspendedOperations.map { it.actor } == other.suspendedOperations.map { it.actor } &&
-            resumedOperations == other.resumedOperations
+                suspendedOperations.map { it.actor } == other.suspendedOperations.map { it.actor } &&
+                resumedOperations == other.resumedOperations
     }
 
     override fun hashCode() = Objects.hash(

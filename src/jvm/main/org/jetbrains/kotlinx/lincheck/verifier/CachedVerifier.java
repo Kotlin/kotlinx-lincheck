@@ -10,12 +10,12 @@ package org.jetbrains.kotlinx.lincheck.verifier;
  * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Lesser Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Lesser Public
  * License along with this program.  If not, see
  * <http://www.gnu.org/licenses/lgpl-3.0.html>.
@@ -37,7 +37,9 @@ public abstract class CachedVerifier implements Verifier {
 
     @Override
     public boolean verifyResults(ExecutionScenario scenario, ExecutionResult results) {
-        boolean newResult = previousResults.computeIfAbsent(scenario, s -> new HashSet<>()).add(results);
+        // Stacktrace is a large object, that is useless for verification, as it is used only for report.
+        ExecutionResult resultWithoutCrashes = ExecutionResultKt.getWithoutCrashes(results);
+        boolean newResult = previousResults.computeIfAbsent(scenario, s -> new HashSet<>()).add(resultWithoutCrashes);
         if (!newResult) return true;
         return verifyResultsImpl(scenario, results);
     }

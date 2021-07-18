@@ -60,6 +60,10 @@ class ValidationFailureInvocationResult(
     val exception: Throwable
 ) : InvocationResult()
 
+class LivelockInvocationResult(
+    val threadDump: Map<Thread, Array<StackTraceElement>>
+) : InvocationResult()
+
 /**
  * Obstruction freedom check is requested,
  * but an invocation that hangs has been found.
